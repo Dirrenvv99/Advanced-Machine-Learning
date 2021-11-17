@@ -37,7 +37,6 @@ def main():
         xs = [sample_q(1) for _ in range(W)]
         for x in xs:
             axs[2].plot([sigma for sigma in np.linspace(0.1,1.6,100)], [p(x,sigma_p)/q(x,sigma) for sigma in np.linspace(0.1,1.6,100)])
-            axs[2].set_ylim([-3,1000])
 
     # for N in tqdm(N_values):
     #     axs[0].plot([sigma for sigma in np.linspace(0.02,1.6,25)], [normalizing_constant(N, sigma) for sigma in np.linspace(0.02,1.6,25)], label = str(N))
