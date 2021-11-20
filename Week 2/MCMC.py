@@ -90,10 +90,11 @@ def MH(sigma, iter):
     return x, rejections
 
 def main():
-    sigmas = np.linspace(0.2,40,10)
+    sigmas = np.linspace(0.2,600,10)
     mean_values = []
     rejection_rates = []
     fig, axs = plt.subplots(5,2, figsize = (18,15))
+    real_samples = np.random.multivariate_normal([0,0], [[250.25,-249.75],[-249.75,250.25]], 100)
     for index, sigma in tqdm(enumerate(sigmas)):
         samples = []
         recs = []
@@ -107,8 +108,7 @@ def main():
         # pos[:, :, 0] = X; pos[:, :, 1] = Y
         # p = multivariate_normal([0,0], [[250.25,-249.75],[-249.75,250.25]])
         # axs[index%5, int(index > 5)].contour(X,Y, p.pdf(pos))
-
-        real_samples = np.random.multivariate_normal([0,0], [[250.25,-249.75],[-249.75,250.25]], 100)
+        
         axs[index%5, int(index > 4)].scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
         axs[index%5, int(index > 4)].scatter([x[0] for x in samples], [x[1] for x in samples], color = "red", label = "samples")
         #confidence_ellipse(np.array([x[0] for x in samples]), np.array([x[1] for x in samples]), axs[index%5, int(index < 5)], edgecolor = "red")
