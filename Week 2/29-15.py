@@ -33,7 +33,7 @@ def gamma_sample(shape, scale):
 
 def update_step(beta, mu_init_variance, data_sum, data, N):
     var_sample  = 1/(1/mu_init_variance + beta*N)
-    mu_sample = data_sum/(2/(beta*mu_init_variance) + 2*N)
+    mu_sample = data_sum/(1/(beta*mu_init_variance) + N)
  
     mu_next = gaus_sample(mu_sample, np.sqrt(var_sample))
 
@@ -81,7 +81,7 @@ def main():
 
     mus = []
     betas = [] 
-    for _ in tqdm(range(100)):
+    for _ in tqdm(range(500)):
         mu_final, beta_final = gibbs_sampling(mu_init, beta_init, data, N, mu_init_variance, iter = 100)
         mus.append(mu_final)
         betas.append(beta_final)
