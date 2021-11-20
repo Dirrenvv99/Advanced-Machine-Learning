@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.special as sps
+from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -26,61 +27,67 @@ def gamma(x, shape, scale):
     return x**(shape-1)*(np.exp(-x/scale) / (sps.gamma(shape)*scale**shape))
 
 
-def gaus_gamma(shape, scale):
-    return np.random.gamma(shape, scale, 1000)
+def gamma_sample(shape, scale):
+    return np.random.gamma(shape, scale)
+
+
+def update_step(beta, mu_init_variance, data_sum, data, N):
+    var_sample  = 1/(1/mu_init_variance + beta*N)
+    mu_sample = data_sum/(2/(beta*mu_init_variance) + 2*N)
+ 
+    mu_next = gaus_sample(mu_sample, np.sqrt(var_sample))
+
+    gamma_shape = N/2
+    gamma_scale_denom = np.sum(np.array([(x - mu_next)**2 for x in data]))
+    gamma_scale = 2/gamma_scale_denom
+
+    beta_next = gamma_sample(gamma_shape, gamma_scale)
+
+    return mu_next, beta_next
+    
+
+
+
+def gibbs_sampling(mu_init, beta_init, data, N, mu_init_variance, iter = 100):
+    data_sum = np.sum(data)
+    mu_prev = mu_init
+    beta_prev = beta_init
+    for _ in range(iter - 1):
+        mu_next , beta_next = update_step(beta_prev, mu_init_variance, data_sum, data, N)
+        mu_prev, beta_prev = mu_next, beta_next
+    
+    mu_final, beta_final = update_step(beta_next, mu_init_variance, data_sum, data, N)
+    return mu_final , beta_final
+
+
 
 
 def main():
-    mu = 0
-    sigma = 5
-    x = np.arange(-20, 20, .01)
-    y = gaus(x, mu, sigma)
+    # mu = 0
+    # sigma = 5
+    # x = np.arange(-20, 20, .01)
+    # y = gaus(x, mu, sigma)
 
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
+    N = 1000 # Number of data points
+    real_mu = 3
+    real_scale = 42 # note that this is the scale -> np.sqrt(sigma) = 42 -> sigma = 42^2 = 1764-> precision (beta) = 1/1764
 
-    # def p(x, sigma_p):
-    #     return scipy.stats.norm.pdf(x, loc = 0, scale = sigma_p)
-
-    # def q(x, sigma_q):
-    #     return scipy.stats.norm.pdf(x, loc = 0, scale = sigma_q)
-
-    # def sample_p(sigma_p):
-    #     return scipy.stats.norm.rvs(loc = 0, scale = sigma_p)
-
-    # def sample_q(sigma_q):
-    #     return scipy.stats.norm.rvs(loc = 0, scale = sigma_q)
-
-    # def normalizing_constant(N, sigma_q, sigma_p = 1):
-    #     np.random.seed(0)
-    #     samples = [sample_q(sigma_q) for _ in range(N)]
-    #     estimated_z = np.mean([p(x,sigma_p)/q(x,sigma_q) for x in samples])
-    #     return estimated_z
-
-    # def emperical_std(N,sigma_q, sigma_p = 1):
-    #     np.random.seed(0)
-    #     samples = [sample_q(sigma_q) for _ in range(N)]
-    #     emp_std = np.std([p(x,sigma_p)/q(x,sigma_q) for x in samples])
-    #     return emp_std
-
-    # def weights(W, sigma_p = 1):         
-
-    #     xs = [sample_q(1) for _ in range(W)]
-    #     for x in xs:
-    #         axs[2].plot([sigma for sigma in np.linspace(0.1,1.6,100)], [p(x,sigma)/q(x,1) for sigma in np.linspace(0.1,1.6,100)])
-    #         axs[2].set_ylim([-.1,3.5])
-
-    # for N in tqdm(N_values):
-    #     axs[0].plot([sigma for sigma in np.linspace(0.02,1.6,25)], [normalizing_constant(N, sigma) for sigma in np.linspace(0.02,1.6,25)], label = str(N))
-    #     axs[0].legend()   
+    data = np.array([gaus_sample(real_mu, real_scale) for _ in range(N)])
     
-    # for N in tqdm(N_values):
-    #     axs[1].plot([sigma for sigma in np.linspace(0.02,1.6,25)], [emperical_std(N, sigma) for sigma in np.linspace(0.02,1.6,25)], label = str(N))
-    #     axs[1].legend()
+    #start with two initial mu and beta:
+    mu_init_variance = 50
+    mu_init = gaus_sample(0,np.sqrt(mu_init_variance))
+    beta_init = 1/2 #just a random choice
 
-    # weights(30)
-    
-    plt.show()
+    mus = []
+    betas = [] 
+    for _ in tqdm(range(100)):
+        mu_final, beta_final = gibbs_sampling(mu_init, beta_init, data, N, mu_init_variance, iter = 100)
+        mus.append(mu_final)
+        betas.append(beta_final)
+
+    print("beta mean found:" , np.mean(betas), "real is: ", 1/real_scale**2)
+    print("mu mean found: ", np.mean(mus), "real is: ", real_mu, "with an std of: ", np.std(mus)) 
 
 
 if __name__ == '__main__':
