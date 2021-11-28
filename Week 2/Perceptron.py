@@ -17,7 +17,17 @@ def E(w):
     return 1/2*np.dot(w,w)
 
 def G(w):
-    return -np.sum(t*np.log(y(w)) + (1-t)*np.log(1-y(w)))
+    result = 0
+    y_list = y(w)
+    for i in range(len(y_list)):
+        if y_list[i] == 1:
+            result += t[i]*np.log(y_list[i]) + (1 - t[i]) * np.log(1-y_list[i] + 10**(-55))
+        else:
+            if y_list[i] == 0:
+                result += t[i]*np.log(y_list[i] + 10**(-55)) + (1 - t[i]) * np.log(1-y_list[i])
+            else:
+                result += t[i]*np.log(y_list[i]) + (1 - t[i]) * np.log(1-y_list[i])
+    return -1 * result
 
 def M(w):
     return G(w) + alpha*E(w)
@@ -42,7 +52,7 @@ def MH(sigma, iter):
     w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3))
     rejections = 0
     sample_list = []
-    for _ in range(iter):
+    for _ in tqdm(range(iter)):
         sample = sample_q(w, sigma)
         a = a_value(w,sample, sigma)
         if a >= 1:
@@ -58,10 +68,25 @@ def MH(sigma, iter):
 def main():
     epochs = 10
     sigma = 10
-    w_values, rejections = MH(sigma,10000)
-    plt.plot([i for i in range(10000)], [w[0] for w in w_values])
-    plt.plot([i for i in range(10000)], [w[1] for w in w_values])
-    plt.plot([i for i in range(10000)], [w[2] for w in w_values])
+    N = 40000
+    w_values, rejections = MH(sigma,N)
+    print(y(w_values[-1]))
+    fig, axs = plt.subplots(4)
+
+    axs[0].plot([i for i in range(N)], [w[0] for w in w_values], label = "w0")
+    axs[0].plot([i for i in range(N)], [w[1] for w in w_values], label = "w1")
+    axs[0].plot([i for i in range(N)], [w[2] for w in w_values], label = "w2")
+    axs[0].legend()
+
+    axs[1].scatter([w[0] for w in w_values], [w[1] for w in w_values])
+
+    axs[2].plot([i for i in range(N)], [G(w) for w in w_values])
+    axs[2].set_ylim([0,14])
+
+    axs[3].plot([i for i in range(N)], [M(w) for w in w_values])
+    axs[3].set_ylim([0,14])
+
+    fig.tight_layout(pad = 1.5)
     plt.show()
 if __name__ == '__main__':
     main()
