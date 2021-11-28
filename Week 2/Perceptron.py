@@ -21,10 +21,10 @@ def G(w):
     y_list = y(w)
     for i in range(len(y_list)):
         if y_list[i] == 1:
-            result += t[i]*np.log(y_list[i]) + (1 - t[i]) * np.log(1-y_list[i] + 10**(-55))
+            result += t[i]*np.log(y_list[i]) + (1 - t[i]) * np.log(1-y_list[i] + 10**(-77))
         else:
             if y_list[i] == 0:
-                result += t[i]*np.log(y_list[i] + 10**(-55)) + (1 - t[i]) * np.log(1-y_list[i])
+                result += t[i]*np.log(y_list[i] + 10**(-77)) + (1 - t[i]) * np.log(1-y_list[i])
             else:
                 result += t[i]*np.log(y_list[i]) + (1 - t[i]) * np.log(1-y_list[i])
     return -1 * result
