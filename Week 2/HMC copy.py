@@ -13,37 +13,37 @@ def gradE(x):
 
 
 def HMC(tau, eps, nr_samples, iter = 100):
-    samples = []
-    rejections = []
-    for _ in tqdm(range(nr_samples)):
-        rejection_count = 0
-        x = np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]
-        #g = gradE(x)
-        for _ in range(iter):                
-            p = np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]
-            
-            H_old = np.dot(p,p)/2 + E(x)
-            x_old = np.copy(x)
+    samples = [np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]]
+    # rejections = []
+    # for _ in tqdm(range(nr_samples)):
+    rejection_count = 0
+    #g = gradE(x)
+    for _ in range(iter):                
+        p = np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]
+        
+        x = samples[-1]
+        H_old = np.dot(p,p)/2 + E(x)
+        x_old = np.copy(x)
 
-            for _ in range(tau):    # Leapfrog
-                p -= eps * gradE(x)/2
-                x += eps * p
-                p -= eps * gradE(x)/2
-            
-            H_new = np.dot(p,p)/2 + E(x)
-            dH = H_new - H_old
+        for _ in range(tau):    # Leapfrog
+            p -= eps * gradE(x)/2
+            x += eps * p
+            p -= eps * gradE(x)/2
+        
+        H_new = np.dot(p,p)/2 + E(x)
+        dH = H_new - H_old
 
-            if dH != dH:
-                print("something went wrong and produces NaN values")
+        if dH != dH:
+            print("something went wrong and produces NaN values")
 
-            if dH < 0 or np.random.random() < np.exp(-dH):
-                x = x    #just to make this work, and for clarity; it shows that after the steps x has become x_new, and if x_new is rejected, we just revert x back to x_old               
-            else:
-                x = x_old
-                rejection_count += 1
+        if dH < 0 or np.random.random() < np.exp(-dH):
+            x = x    #just to make this work, and for clarity; it shows that after the steps x has become x_new, and if x_new is rejected, we just revert x back to x_old               
+        else:
+            x = x_old
+            rejection_count += 1
         samples.append(x)
-        rejections.append(rejection_count)
-    return samples, rejections
+        # rejections.append(rejection_count)
+    return samples, rejection_count#rejections
 
 
 def main():
@@ -67,7 +67,8 @@ def main():
     for tau, eps in [(i, j) for i in taus for j in epss]:
         samples, rejections = HMC(tau, eps, nr_samples, iters)
         
-        print(f"{tau},\t{eps}\t{np.mean([rejection/iters for rejection in rejections])}")
+        # print(f"{tau},\t{eps}\t{np.mean([rejection/iters for rejection in rejections])}")
+        print(f"{tau},\t{eps}\t{rejections/iters}")
         ei, ti = epss.index(eps), taus.index(tau)
         # print(samples)
 
@@ -76,6 +77,7 @@ def main():
         axs[ei, ti].set_title(f"sample plot with tau: {tau}; epsilon: {eps}")
         if (ei+ti==0):
             axs[ei, ti].legend()
+    fig.tight_layout(pad = 1.0)
     plt.show()
         
 
