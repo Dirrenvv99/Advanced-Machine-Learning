@@ -61,11 +61,14 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
 def p_star(x):
     return multivariate_normal.pdf(x, mean = [0,0], cov = [[250.25,-249.75],[-249.75,250.25]])
 
+
 def sample_q(x_r, sigma):
     return np.random.multivariate_normal(x_r, sigma * np.eye(2), 1)[0]
 
+
 def q(x,x_r,sigma):
     return multivariate_normal.pdf(x,mean = x_r, cov = sigma * np.eye(2))
+
 
 def a_value(x_r, x_sample, sigma):
 
@@ -73,6 +76,7 @@ def a_value(x_r, x_sample, sigma):
     denom = p_star(x_r) * q(x_sample, x_r, sigma)
 
     return nom/denom
+
 
 def MH(sigma, iter):
     x = np.random.multivariate_normal(np.array([0,0]), np.eye(2))
@@ -89,33 +93,35 @@ def MH(sigma, iter):
                 rejections +=1
     return x, rejections
 
+
 def main():
     sigmas = np.linspace(0.2,600,10)
-    mean_values = []
-    rejection_rates = []
     fig, axs = plt.subplots(5,2, figsize = (18,15))
+    np.random.seed(0)
     real_samples = np.random.multivariate_normal([0,0], [[250.25,-249.75],[-249.75,250.25]], 100)
+    
     for index, sigma in tqdm(enumerate(sigmas)):
+        np.random.seed(0)
         samples = []
         recs = []
         for _ in tqdm(range(100)):
             x_final, rejections = MH(sigma, 25)
             samples.append(x_final)
             recs.append(rejections)
-        # x_plot = [x for x in np.linspace(-40,40,500)]
-        # [X,Y] = np.meshgrid(x_plot,x_plot)
-        # pos = np.empty(X.shape + (2,))
-        # pos[:, :, 0] = X; pos[:, :, 1] = Y
-        # p = multivariate_normal([0,0], [[250.25,-249.75],[-249.75,250.25]])
-        # axs[index%5, int(index > 5)].contour(X,Y, p.pdf(pos))
-        
+
         axs[index%5, int(index > 4)].scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
         axs[index%5, int(index > 4)].scatter([x[0] for x in samples], [x[1] for x in samples], color = "red", label = "samples")
-        #confidence_ellipse(np.array([x[0] for x in samples]), np.array([x[1] for x in samples]), axs[index%5, int(index < 5)], edgecolor = "red")
         axs[index%5, int(index > 4)].set_title("sample plot with sigma: {:.2f}; rejection rate: {:.2f}".format(sigma, np.mean(rejections)/100))
         axs[index%5, int(index > 4)].legend()
     fig.tight_layout(pad = 3.0)
     plt.show()
 
+
 if __name__ == '__main__':
     main()
+
+"""
+Optimal value Approx:
+Sigma          ~ 267
+Rejection Rate ~ .23
+"""
