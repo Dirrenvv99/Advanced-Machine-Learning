@@ -35,10 +35,15 @@ def M(w):
     return G(w) + alpha*E(w)
 
 def grad_G(w):
-    result = np.array([0,0,0])
+    result = np.array([.0,.0,.0])
     y_list = y(w)
     for i in range(len(y_list)):
-        result += -t[i]/y_list(w) - (1-t[i])/(1-y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
+        if y_list[i] == 0:
+            result += (-1 * (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
+        elif y_list[i] == 1:
+            result += (-t[i]/y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
+        else:
+            result += (-t[i]/y_list[i] - (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
     return result 
 
 def grad_E(w):
@@ -50,7 +55,7 @@ def grad_M(w):
 def HMC(tau, eps, iters = 100):
     w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3), 1)[0]
     w_values = []
-    for _ in range(iters):
+    for _ in tqdm(range(iters)):
         p = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3), 1)[0]
 
         H_old = np.dot(p,p)/2 + M(w)
@@ -74,9 +79,27 @@ def HMC(tau, eps, iters = 100):
 def main():
     tau = 100
     eps = 0.015
-    iters = 100
+    iters = 1000
 
     w_values = HMC(tau, eps, iters)
+    print(y(w_values[-1]))
+
+    fig, axs = plt.subplots(1,4)
+
+    axs[0].plot([i for i in range(iters)], [w[0] for w in w_values], label = "w0")
+    axs[0].plot([i for i in range(iters)], [w[1] for w in w_values], label = "w1")
+    axs[0].plot([i for i in range(iters)], [w[2] for w in w_values], label = "w2")
+    axs[0].legend()
+
+    axs[1].scatter([w[0] for w in w_values], [w[1] for w in w_values])
+
+    axs[2].plot([i for i in range(iters)], [G(w) for w in w_values])
+
+    axs[3].plot([i for i in range(iters)], [M(w) for w in w_values])
+
+    fig.tight_layout(pad = 1.5)
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
