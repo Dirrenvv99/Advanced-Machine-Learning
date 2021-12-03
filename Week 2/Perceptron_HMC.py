@@ -41,10 +41,10 @@ def grad_G(w):
         if y_list[i] == 0:
             result += (-1 * (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
         elif y_list[i] == 1:
-            result += (-t[i]/y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
+            result += (t[i]/y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
         else:
-            result += (-t[i]/y_list[i] - (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
-    return result 
+            result += (t[i]/y_list[i] - (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
+    return -1*result 
 
 def grad_E(w):
     return w
@@ -53,10 +53,11 @@ def grad_M(w):
     return grad_G(w) + alpha * grad_E(w)
 
 def HMC(tau, eps, iters = 100):
-    w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3), 1)[0]
+    w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3))
     w_values = []
+    rejections = 0
     for _ in tqdm(range(iters)):
-        p = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3), 1)[0]
+        p = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3))
 
         H_old = np.dot(p,p)/2 + M(w)
         w_old = np.copy(w)
@@ -73,29 +74,38 @@ def HMC(tau, eps, iters = 100):
             w = w
         else:
             w = w_old
+            rejections += 1
         w_values.append(w)
-    return w_values
+    return w_values, rejections
 
 def main():
     tau = 100
-    eps = 0.015
-    iters = 1000
+    eps = np.sqrt(0.02)
+    iters = 40000
 
-    w_values = HMC(tau, eps, iters)
-    print(y(w_values[-1]))
+    w_values, rejections = HMC(tau, eps, iters)
+    print(rejections/iters)
+    w_samples_indices =  np.arange(10000, len(w_values), 1000)
+    y_samples = [y(w_values[i]) for i in w_samples_indices]
+    y_mean = np.mean(y_samples, axis = 0)
+    print(y_mean)
 
-    fig, axs = plt.subplots(1,4)
+    fig, axs = plt.subplots(4)
 
     axs[0].plot([i for i in range(iters)], [w[0] for w in w_values], label = "w0")
     axs[0].plot([i for i in range(iters)], [w[1] for w in w_values], label = "w1")
     axs[0].plot([i for i in range(iters)], [w[2] for w in w_values], label = "w2")
     axs[0].legend()
 
-    axs[1].scatter([w[0] for w in w_values], [w[1] for w in w_values])
+    axs[1].scatter([w[2] for w in w_values], [w[1] for w in w_values])
+    axs[1].set_ylim([-3,5])
+    axs[1].set_xlim([-1,7])
 
     axs[2].plot([i for i in range(iters)], [G(w) for w in w_values])
+    axs[2].set_ylim([0,14])
 
     axs[3].plot([i for i in range(iters)], [M(w) for w in w_values])
+    axs[3].set_ylim([0,14])
 
     fig.tight_layout(pad = 1.5)
     plt.show()

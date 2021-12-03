@@ -36,10 +36,10 @@ def p_star(w):
     return np.exp(-M(w))
 
 def sample_q(w_r, sigma):
-    return np.random.multivariate_normal(w_r, sigma * np.eye(3), 1)[0]
+    return np.random.multivariate_normal(w_r, sigma * np.eye(3)).tolist()
 
 def q(w,w_r,sigma):
-    return multivariate_normal.pdf(w,mean = w_r, cov = sigma * np.eye(3))
+    return multivariate_normal.pdf(w,mean = w_r, cov = sigma * np.eye(3)).tolist()
 
 def a_value(w_r,w_sample, sigma):
 
@@ -49,7 +49,7 @@ def a_value(w_r,w_sample, sigma):
     return nom/denom
 
 def MH(sigma, iter):
-    w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3))
+    w = np.random.multivariate_normal([0,0,0], np.eye(3)).tolist()
     rejections = 0
     sample_list = []
     for _ in tqdm(range(iter)):
@@ -67,10 +67,16 @@ def MH(sigma, iter):
 
 def main():
     epochs = 10
-    sigma = 10
-    N = 40000
+    sigma = 0.5
+    N = 100000
     w_values, rejections = MH(sigma,N)
-    print(y(w_values[-1]))
+    w_values = np.array(w_values)
+    # to show that it works:
+    w_samples_indices =  np.random.choice(np.arange(0, len(w_values)), replace=False, size= 1000)
+    y_samples = [y(w_values[i]) for i in w_samples_indices]
+    y_mean = np.mean(y_samples, axis = 0)
+    print(y_mean)
+    
     fig, axs = plt.subplots(4)
 
     axs[0].plot([i for i in range(N)], [w[0] for w in w_values], label = "w0")
@@ -78,7 +84,9 @@ def main():
     axs[0].plot([i for i in range(N)], [w[2] for w in w_values], label = "w2")
     axs[0].legend()
 
-    axs[1].scatter([w[0] for w in w_values], [w[1] for w in w_values])
+    axs[1].scatter([w[2] for w in w_values], [w[1] for w in w_values])
+    axs[1].set_ylim([-3,5])
+    axs[1].set_xlim([-1,7])
 
     axs[2].plot([i for i in range(N)], [G(w) for w in w_values])
     axs[2].set_ylim([0,14])
