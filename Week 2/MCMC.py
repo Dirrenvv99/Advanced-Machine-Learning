@@ -59,7 +59,7 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
 
 
 def p_star(x):
-    return multivariate_normal.pdf(x, mean = [0,0], cov = [[250.25,-249.75],[-249.75,250.25]])
+    return multivariate_normal.pdf(x, mean = [0,0], cov = np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]))
 
 
 def sample_q(x_r, sigma):
@@ -95,23 +95,24 @@ def MH(sigma, iter):
 
 
 def main():
-    sigmas = np.linspace(0.2,600,10)
+    iter = 1000
+    sigmas = np.linspace(0.2,6,10)
     fig, axs = plt.subplots(5,2, figsize = (18,15))
     np.random.seed(0)
-    real_samples = np.random.multivariate_normal([0,0], [[250.25,-249.75],[-249.75,250.25]], 100)
+    real_samples = np.random.multivariate_normal([0,0], np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]), 100)
     
     for index, sigma in tqdm(enumerate(sigmas)):
         np.random.seed(0)
         samples = []
         recs = []
         for _ in tqdm(range(100)):
-            x_final, rejections = MH(sigma, 25)
+            x_final, rejections = MH(sigma, iter)
             samples.append(x_final)
             recs.append(rejections)
 
         axs[index%5, int(index > 4)].scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
         axs[index%5, int(index > 4)].scatter([x[0] for x in samples], [x[1] for x in samples], color = "red", label = "samples")
-        axs[index%5, int(index > 4)].set_title("sample plot with sigma: {:.2f}; rejection rate: {:.2f}".format(sigma, np.mean(rejections)/100))
+        axs[index%5, int(index > 4)].set_title("sample plot with sigma: {:.2f}; rejection rate: {:.2f}".format(sigma, np.mean(rejections)/iter))
         axs[index%5, int(index > 4)].legend()
     fig.tight_layout(pad = 3.0)
     plt.show()
