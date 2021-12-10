@@ -59,7 +59,7 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
 
 
 def p_star(x):
-    return multivariate_normal.pdf(x, mean = [0,0], cov = np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]))
+    return multivariate_normal.logpdf(x, mean = [0,0], cov = np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]))
 
 
 def sample_q(x_r, sigma):
@@ -67,23 +67,27 @@ def sample_q(x_r, sigma):
 
 
 def q(x,x_r,sigma):
-    return multivariate_normal.pdf(x,mean = x_r, cov = sigma * np.eye(2))
+    return multivariate_normal.logpdf(x,mean = x_r, cov = sigma * np.eye(2))
 
 
 def a_value(x_r, x_sample, sigma):
 
-    nom = p_star(x_sample) * q(x_r,x_sample,sigma)
-    denom = p_star(x_r) * q(x_sample, x_r, sigma)
+    nom = p_star(x_sample) + q(x_r,x_sample,sigma)
+    denom = p_star(x_r) + q(x_sample, x_r, sigma)
 
-    return nom/denom
+    return np.exp(nom-denom)
 
 
 def MH(sigma, iter):
     x = np.random.multivariate_normal(np.array([0,0]), np.eye(2))
     rejections = 0
+    a_values = []
     for _ in range(iter):
         sample = sample_q(x, sigma)
         a = a_value(x, sample, sigma)
+        # if a != a:
+        #     a = 3
+        a_values.append(a)
         if a >= 1:
             x = sample
         else:
@@ -91,12 +95,14 @@ def MH(sigma, iter):
                 x = sample
             else: 
                 rejections +=1
+    if rejections == iter:
+        print(a_values)
     return x, rejections
 
 
 def main():
-    iter = 1000
-    sigmas = np.linspace(0.2,6,10)
+    iter = 50
+    sigmas = np.linspace(0.01,0.1,10)
     fig, axs = plt.subplots(5,2, figsize = (18,15))
     np.random.seed(0)
     real_samples = np.random.multivariate_normal([0,0], np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]), 100)
@@ -110,6 +116,8 @@ def main():
             samples.append(x_final)
             recs.append(rejections)
 
+        # for i, txt in enumerate(recs):
+        #     axs[index%5, int(index > 4)].annotate(txt, (samples[i][0], samples[i][1]))
         axs[index%5, int(index > 4)].scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
         axs[index%5, int(index > 4)].scatter([x[0] for x in samples], [x[1] for x in samples], color = "red", label = "samples")
         axs[index%5, int(index > 4)].set_title("sample plot with sigma: {:.2f}; rejection rate: {:.2f}".format(sigma, np.mean(rejections)/iter))
