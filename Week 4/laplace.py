@@ -25,16 +25,44 @@ def sigmoid(y):
 
 
 def G(w):
+    e = 10**(-77)
     y_list = sigmoid(f(w))
 
     result = 0
     for idx, y in enumerate(y_list):
-        result -= t[idx]*np.log(y) + (1-t[idx])*np.log(1-y)
+        if y_list[i] == 1:
+            result -= t[idx]*np.log(y) + (1-t[idx])*np.log(1-y+e)
+        elif y_list[i] == 0:
+            result -= t[idx]*np.log(y+e) + (1-t[idx])*np.log(1-y)
+        else:
+            result -= t[idx]*np.log(y) + (1-t[idx])*np.log(1-y)
+
     return result
 
 
 def M(w, alpha):
     return G(w) + .5*alpha*np.dot(w,w)
+
+
+def grad_G(w):
+    result = np.array([.0,.0,.0])
+    y_list = f(w)
+    for i in range(len(y_list)):
+        if y_list[i] == 0:
+            result -= (-1 * (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
+        elif y_list[i] == 1:
+            result -= (t[i]/y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
+        else:
+            result -= (t[i]/y_list[i] - (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
+    return result 
+
+
+def grad_E(w):
+    return w
+
+
+def grad_M(w, alpha):
+    return grad_G(w) + alpha * grad_E(w)
 
 
 def hessian(w, alpha):
@@ -44,26 +72,25 @@ def hessian(w, alpha):
     hess = np.zeros((d,d))
     for i in range(d):
         for j in range(d):
-            # print(np.dot(x, x.T).shape)
-            # print(h.shape)
-            hess[i,j] = np.sum( sigmoid(h) * sigmoid(-h) * np.dot(x, x.T) )
+            hess[i,j] = np.dot(sigmoid(h), sigmoid(-h)) * np.dot(x[i], x[j])
 
     return hess + alpha*np.identity(d)
 
 
-def gradient_descent(w, alpha, learning_rate, iterations):  # TODO implement minimum
-    e = 10**-10
-
+def gradient_descent(w, alpha, learning_rate, iterations, grad_min):
     for _ in range(iterations):
-        grad = (M(w+e, alpha)-M(w, alpha)) / e    # Simple
-        w -= learning_rate * grad
+        grad = grad_M(w, alpha)
+        if (grad < grad_min).all():
+            break
+        w -= learning_rate
+
     return w
 
 
-def l_approx(w, alpha, epochs):
+def l_approx(w, alpha, epochs, grad_min):
     w_values = [w]
     for _ in tqdm(range(epochs)):
-        w_star = gradient_descent(w_values[-1], alpha, .005, 50)
+        w_star = gradient_descent(w_values[-1], alpha, .005, 50, grad_min)
         h = hessian(w_star, alpha)
         hinv = np.linalg.inv(h)
         w = np.random.multivariate_normal(w_star, hinv)
@@ -76,12 +103,10 @@ def main():
     np.random.seed(0)
     epochs = 35
     alpha = 0.5
+    grad_min = 10**-10
     w = np.random.multivariate_normal([0,0,0], np.eye(3))
 
-    w_values = l_approx(w, alpha, epochs)
-    # print(x)
-    # print(w_values[0])
-    # print((w_values[0]*x))
+    w_values = l_approx(w, alpha, epochs, grad_min)
     mse = [np.mean(np.square(np.sum((x*w), axis=1)-t)) for w in w_values]
     
     c = cm.rainbow(np.linspace(0, 1, len(w_values)))
