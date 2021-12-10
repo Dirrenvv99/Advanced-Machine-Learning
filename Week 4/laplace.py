@@ -72,7 +72,7 @@ def hessian(w, alpha):
     hess = np.zeros((d,d))
     for i in range(d):
         for j in range(d):
-            hess[i,j] = np.dot(sigmoid(h), sigmoid(-h)) * np.dot(x[i], x[j])
+            hess[i,j] = np.sum(sigmoid(h) * sigmoid(-h) * x[:,i] * x[:,j])
 
     return hess + alpha*np.identity(d)
 
@@ -108,7 +108,7 @@ def main():
     np.random.seed(0)
     epochs = 1000
     alpha = 0.5
-    grad_lr, grad_iter, grad_min = .005, 50000, 10**-10
+    grad_lr, grad_iter, grad_min = .005, 100000, 10**-10
     w = np.random.multivariate_normal([0,0,0], np.eye(3))
 
     # w_values = l_approx(w, alpha, epochs, grad_min)
@@ -126,6 +126,8 @@ def main():
         
     print(t)
     print(approx)
+    approx = np.array(approx)
+    print(f"{np.sum((t==(approx>.5)))} / {len(t)}")
     
     # _, axs = plt.subplots(1,3)
 
