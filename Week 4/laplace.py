@@ -87,51 +87,68 @@ def gradient_descent(w, alpha, learning_rate, iterations, grad_min):
     return w
 
 
-def l_approx(w, alpha, epochs, grad_min):
-    w_values = [w]
-    for _ in tqdm(range(epochs)):
-        w_star = gradient_descent(w_values[-1], alpha, .005, 50, grad_min)
-        h = hessian(w_star, alpha)
-        hinv = np.linalg.inv(h)
-        w = np.random.multivariate_normal(w_star, hinv)
-        w_values.append(w)
+def l_approx(w, alpha, epochs, grad_lr, grad_iter, grad_min):
+    w_star = gradient_descent(w, alpha, grad_lr, grad_iter, grad_min)
+    h = hessian(w_star, alpha)
+    hinv = np.linalg.inv(h)
+    
+    return w_star, hinv
+    # w_values = [w]
+    # for _ in tqdm(range(epochs)):
+    #     w_star = gradient_descent(w_values[-1], alpha, .005, 50, grad_min)
+    #     h = hessian(w_star, alpha)
+    #     hinv = np.linalg.inv(h)
+    #     w = np.random.multivariate_normal(w_star, hinv)
+    #     w_values.append(w)
 
-    return w_values
+    # return w_values
 
 
 def main():
     np.random.seed(0)
-    epochs = 35
+    epochs = 1000
     alpha = 0.5
-    grad_min = 10**-10
+    grad_lr, grad_iter, grad_min = .005, 50000, 10**-10
     w = np.random.multivariate_normal([0,0,0], np.eye(3))
 
-    w_values = l_approx(w, alpha, epochs, grad_min)
-    mse = [np.mean(np.square(np.sum((x*w), axis=1)-t)) for w in w_values]
-    
-    c = cm.rainbow(np.linspace(0, 1, len(w_values)))
-    
-    fig, axs = plt.subplots(1,3)
+    # w_values = l_approx(w, alpha, epochs, grad_min)
+    w_star, hinv = l_approx(w, alpha, epochs, grad_lr, grad_iter, grad_min)
+    # mse = [np.mean(np.square(np.sum((x*w), axis=1)-t)) for w in w_values]
 
-    axs[0].set_title('weights')
-    axs[0].plot([w[0] for w in w_values], label = "w0")
-    axs[0].plot([w[1] for w in w_values], label = "w1")
-    axs[0].plot([w[2] for w in w_values], label = "w2")
-    axs[0].legend()
+    approx = []
+    for sample in x:
+        a_star = np.dot(sample, w_star)
+        s_squared = np.dot(np.dot(sample, hinv), sample)
 
-    axs[1].set_title('weights')
-    axs[1].plot([w[1] for w in w_values], [w[2] for w in w_values])
-    axs[1].scatter([w[1] for w in w_values], [w[2] for w in w_values])
-    axs[1].set_ylabel('w1')
-    axs[1].set_ylabel('w2')
+        kappa = 1/np.sqrt(1+np.pi*s_squared/8)
+        psi = sigmoid(kappa*a_star)
+        approx.append(psi)
+        
+    print(t)
+    print(approx)
+    
+    # _, axs = plt.subplots(1,3)
+
+    # axs[0].set_title('weights')
+    # axs[0].plot([w[0] for w in w_values], label = "w0")
+    # axs[0].plot([w[1] for w in w_values], label = "w1")
+    # axs[0].plot([w[2] for w in w_values], label = "w2")
+    # axs[0].legend()
+
+    # axs[1].set_title('weights')
+    # # TODO plot most recent hessian as vairance
+    # axs[1].plot([w[1] for w in w_values], [w[2] for w in w_values])
+    # axs[1].scatter([w[1] for w in w_values], [w[2] for w in w_values])
+    # axs[1].set_ylabel('w1')
+    # axs[1].set_ylabel('w2')
     # axs[1].set_ylim([-3,5])
     # axs[1].set_xlim([-1,7])
 
-    axs[2].set_title('MSE')
-    axs[2].plot(mse)
+    # axs[2].set_title('MSE')
+    # axs[2].plot(mse)
 
     # fig.tight_layout(pad = 1.5)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
