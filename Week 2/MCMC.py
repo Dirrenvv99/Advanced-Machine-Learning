@@ -141,10 +141,10 @@ def main():
 if __name__ == '__main__':
     # x1 = [np.random.multivariate_normal(np.array([0,0]), np.eye(2)) for _ in range(10000)]
     # print(np.mean([np.linalg.norm(y) for y in x1]))
-    # main()
-    real_samples = np.random.multivariate_normal([0,0], np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]), 100)
-    plt.scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
-    plt.show()
+    main()
+    # real_samples = np.random.multivariate_normal([0,0], np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]), 100)
+    # plt.scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
+    # plt.show()
 """
 Optimal value Approx:
 Sigma          ~ 267
