@@ -12,12 +12,12 @@ This time, compute p(t=1|x,D,alpha) using the Laplace approximation and
 reproduce Mackay figure 41.11b.
 """
 
-t = np.loadtxt("t.txt")
-x = np.loadtxt("x.txt")
-# t = np.loadtxt("t.txt")[10:]
-# x = np.loadtxt("x.txt")[10:]
-# t_test = np.loadtxt("t.txt")[-1:]
-# x_test = np.loadtxt("x.txt")[-1:]
+# t = np.loadtxt("t.txt")
+# x = np.loadtxt("x.txt")
+t = np.loadtxt("t.txt")[:10]
+x = np.loadtxt("x.txt")[:10]
+t_test = np.loadtxt("t.txt")[-1:]
+x_test = np.loadtxt("x.txt")[-1:]
 
 
 def f(w):
@@ -50,7 +50,11 @@ def M(w, alpha):
 
 def grad_G(w):
     result = np.array([.0,.0,.0])
-    y_list = f(w)
+    y_list = sigmoid(f(w))
+    # y_list_prime = (1-y_list)
+    # t_prime = (1-t)
+
+    # result += np.dot(t,y_list_prime) * x 
     for i in range(len(y_list)):
         result -= t[i] * (1 - y_list[i]) * x[i] - (1-t[i]) * y_list[i] * x[i]
     return result 
@@ -97,12 +101,11 @@ def gradient_descent(w, alpha, learning_rate, iterations, grad_min):
             # print(np.abs(grad)[0])
             # print((np.abs(grad)[0] < grad_min))
             grad = grad_M(w, alpha)
-            print(grad)
             if (grad != grad).any() or (grad == np.inf).any():
                 break
             w -= learning_rate * grad
             result.append(np.copy(w))
-
+    print(result[-1])
     return result
 
 
@@ -120,29 +123,54 @@ def l_approx(w, alpha, grad_lr, grad_iter, grad_min):
 
 def main():
     np.random.seed(0)
-    alpha = 0.5
-    grad_lr, grad_iter, grad_min = .005, None, 10**-10
+    alpha = 0.01
+    grad_lr, grad_iter, grad_min = .01, None, 10**-5
     # w = np.random.multivariate_normal([0,0,0], np.eye(3))
-    w = np.array([3.,3.,3.])
+    w = np.array([0.,0.,0.])
 
     w_values, hinv_values = l_approx(w, alpha, grad_lr, grad_iter, grad_min)
 
     scores = []
 
     w_star = w_values[-1]
-    for w_star, hinv in zip(w_values, hinv_values):
-        approx = np.array([])
-        for sample in x:
-            a_star = np.dot(sample, w_star)
-            s_squared = np.dot(np.dot(sample, hinv), sample)
+    hinv = hinv_values[-1]
+    # a_star = np.dot(x_test, w_star)
+    # s_squared = np.dot(np.dot(x_test,hinv), x_test)
 
-            kappa = 1/np.sqrt(1+np.pi*s_squared/8)
-            psi = sigmoid(kappa*a_star)
-            approx = np.append(approx, psi)
+    # kappa = 1/np.sqrt(1 + np.pi*s_squared/8)
+    # psi = sigmoid(kappa*a_star)
+    def psi(ax_1, ax_2):
+        Z = np.ones((100,100))
+        for i in range(len(ax_1)):
+            for j in range(len(ax_2)):
+                sample = np.array([1,ax_1[i],ax_2[j]])
+                a_star = np.dot(sample, w_star)
+                s_squared = np.dot(np.dot(sample,hinv), sample)
 
-        scores.append(np.sum((t==(approx>.5)))/len(t))
+                kappa = 1/np.sqrt(1 + np.pi*s_squared/8)
+                Z[i,j] = sigmoid(kappa*a_star)
+        return Z
+
+    ax_1 = np.linspace(0,10,100)
+    ax_2 = np.linspace(0,10,100)
+    
+
+    #Plot that is asked to be generated:
+    plt.contour(ax_1, ax_2, psi(ax_1,ax_2), levels = [0.125,.25,0.5, 0.75, 0.875], colors = 'black', linestyles = ['dotted', 'dashed', 'solid', 'dashed', 'dotted'])
+    data_scatter_x_0 = x[:5,1]
+    data_scatter_y_0 = x[:5,2]
+    plt.scatter(data_scatter_x_0, data_scatter_y_0, marker = "s", label = "target : 0")
+    data_scatter_x_1 = x[-5:,1]
+    data_scatter_y_1 = x[-5:,2]
+    plt.scatter(data_scatter_x_1, data_scatter_y_1, marker = ".", label = "target : 1")
+    plt.title("Laplace Approximation: Decision boundary found")
+    plt.xlabel("x[1]")
+    plt.ylabel("x[2]")
+    plt.legend()
+
+    #Plots that show that the GD uses the same "trace" in order to reach similar w_star as in book:
         
-    _, axs = plt.subplots(1,3)
+    _, axs = plt.subplots(1,2)
 
     axs[0].set_title('weights')
     axs[0].plot([w[0] for w in w_values], label = "w0")
@@ -157,9 +185,10 @@ def main():
     axs[1].set_xlabel('w1')
     axs[1].set_ylabel('w2')
 
-    axs[2].set_title('accuracy')
-    axs[2].plot(scores)
-    axs[2].set_ylim([0, 1])
+    # axs[2].set_title('accuracy')
+    # axs[2].plot(scores)
+    # axs[2].set_ylim([0, 1])
+    
 
     # fig.tight_layout(pad = 1.5)
     plt.show()
