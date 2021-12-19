@@ -14,6 +14,10 @@ reproduce Mackay figure 41.11b.
 
 t = np.loadtxt("t.txt")
 x = np.loadtxt("x.txt")
+# t = np.loadtxt("t.txt")[10:]
+# x = np.loadtxt("x.txt")[10:]
+# t_test = np.loadtxt("t.txt")[-1:]
+# x_test = np.loadtxt("x.txt")[-1:]
 
 
 def f(w):
@@ -30,9 +34,9 @@ def G(w):
 
     result = 0
     for idx, y in enumerate(y_list):
-        if y_list[i] == 1:
-            result -= t[idx]*np.log(y) + (1-t[idx])*np.log(1-y+e)
-        elif y_list[i] == 0:
+        if y == 1:
+            result -= t[idx]*np.log(y) + (1-t[idx])*np.log(1-y-e)
+        elif y == 0:
             result -= t[idx]*np.log(y+e) + (1-t[idx])*np.log(1-y)
         else:
             result -= t[idx]*np.log(y) + (1-t[idx])*np.log(1-y)
@@ -48,12 +52,7 @@ def grad_G(w):
     result = np.array([.0,.0,.0])
     y_list = f(w)
     for i in range(len(y_list)):
-        if y_list[i] == 0:
-            result -= (-1 * (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
-        elif y_list[i] == 1:
-            result -= (t[i]/y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
-        else:
-            result -= (t[i]/y_list[i] - (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
+        result -= t[i] * (1 - y_list[i]) * x[i] - (1-t[i]) * y_list[i] * x[i]
     return result 
 
 
@@ -62,7 +61,12 @@ def grad_E(w):
 
 
 def grad_M(w, alpha):
+    # epsilon = 10**-5
     return grad_G(w) + alpha * grad_E(w)
+    # return np.array([
+    #     (M(w, alpha)+M(w+epsilon*np.array([1,0,0]), alpha))/epsilon,
+    #     (M(w, alpha)+M(w+epsilon*np.array([0,1,0]), alpha))/epsilon,
+    #     (M(w, alpha)+M(w+epsilon*np.array([0,0,1]), alpha))/epsilon])
 
 
 def hessian(w, alpha):
@@ -78,44 +82,50 @@ def hessian(w, alpha):
 
 
 def gradient_descent(w, alpha, learning_rate, iterations, grad_min):
-    for _ in range(iterations):
-        grad = grad_M(w, alpha)
-        if (grad < grad_min).all():
-            break
-        w -= learning_rate
+    result = [np.copy(w)]
 
-    return w
+    if iterations:
+        for _ in range(iterations):
+            grad = grad_M(w, alpha)
+            if (grad < grad_min).all():
+                break
+            w -= learning_rate * grad
+            result.append(np.copy(w))
+    else:
+        grad = np.ones_like(w) * np.inf
+        while not (np.abs(grad) < grad_min).all():
+            # print(np.abs(grad)[0])
+            # print((np.abs(grad)[0] < grad_min))
+            grad = grad_M(w, alpha)
+            print(grad)
+            if (grad != grad).any() or (grad == np.inf).any():
+                break
+            w -= learning_rate * grad
+            result.append(np.copy(w))
+
+    return result
 
 
-def l_approx(w, alpha, epochs, grad_lr, grad_iter, grad_min):
-    # w_star = gradient_descent(w, alpha, grad_lr, grad_iter, grad_min)
-    # h = hessian(w_star, alpha)
-    # hinv = np.linalg.inv(h)
-    
-    # return w_star, hinv
-    w_values = [w]
-    hinv_values = [np.linalg.inv(hessian(w, alpha))]
+def l_approx(w, alpha, grad_lr, grad_iter, grad_min):
+    w_values = gradient_descent(w, alpha, grad_lr, grad_iter, grad_min)
+    hinv_values = []
 
-    for _ in tqdm(range(epochs)):
-        w_star = gradient_descent(w_values[-1], alpha, grad_lr, grad_iter, grad_min)
+    for w_star in w_values:
         h = hessian(w_star, alpha)
         hinv = np.linalg.inv(h)
-        w = np.random.multivariate_normal(w_star, hinv)
         hinv_values.append(hinv)
-        w_values.append(w)
 
     return w_values, hinv_values
 
 
 def main():
     np.random.seed(0)
-    epochs = 1000
     alpha = 0.5
-    grad_lr, grad_iter, grad_min = .005, 100000, 10**-10
-    w = np.random.multivariate_normal([0,0,0], np.eye(3))
+    grad_lr, grad_iter, grad_min = .005, None, 10**-10
+    # w = np.random.multivariate_normal([0,0,0], np.eye(3))
+    w = np.array([3.,3.,3.])
 
-    w_values, hinv_values = l_approx(w, alpha, epochs, grad_lr, grad_iter, grad_min)
-    # w_star, hinv = l_approx(w, alpha, epochs, grad_lr, grad_iter, grad_min)
+    w_values, hinv_values = l_approx(w, alpha, grad_lr, grad_iter, grad_min)
 
     scores = []
 
