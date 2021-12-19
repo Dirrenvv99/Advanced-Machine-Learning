@@ -156,7 +156,7 @@ def main():
     
 
     #Plot that is asked to be generated:
-    plt.contour(ax_1, ax_2, psi(ax_1,ax_2), levels = [0.125,.25,0.5, 0.75, 0.875], colors = 'black', linestyles = ['dotted', 'dashed', 'solid', 'dashed', 'dotted'])
+    plt.contour(ax_1, ax_2, psi(ax_1,ax_2), levels = [0.12,.27,0.5, 0.73, 0.88], colors = 'black', linestyles = ['dotted', 'dashed', 'solid', 'dashed', 'dotted'])
     data_scatter_x_0 = x[:5,1]
     data_scatter_y_0 = x[:5,2]
     plt.scatter(data_scatter_x_0, data_scatter_y_0, marker = "s", label = "target : 0")
