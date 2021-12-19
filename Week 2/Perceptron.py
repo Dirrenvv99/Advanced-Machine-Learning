@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 t = np.loadtxt("t.txt")
 x = np.loadtxt("x.txt")
-alpha = 0.5
+alpha = 0.01
 
 
 def y(w):
@@ -86,7 +86,7 @@ def main():
 
     axs[1].scatter([w[2] for w in w_values], [w[1] for w in w_values])
     axs[1].set_ylim([-3,5])
-    axs[1].set_xlim([-1,2])
+    axs[1].set_xlim([-1,7])
 
     axs[2].plot([i for i in range(N)], [G(w) for w in w_values])
     axs[2].set_ylim([0,14])
