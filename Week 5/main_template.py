@@ -7,7 +7,7 @@ import scipy.sparse as sparse
 from itertools import product
 
 np.random.seed(37)
-n=3                   
+n=3
 Jth=0.1
 full = False
 
@@ -36,7 +36,7 @@ def main():
         c =~(w==0)                  # sparse 0,1 neighborhood graph 
         w=beta*((w>0).astype(int)-(w<0).astype(int))             # w is sparse with +/-beta on the links
     th = np.random.normal(size = n)*Jth
-
+    w *= 10
     #EXACT
     sa = np.array(list(product([-1,1], repeat = n)))         #all 2^n spin configurations
     Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
@@ -53,12 +53,47 @@ def main():
 
     # MF
     # write your code
-    # m_mf=m
-    # error_mf=np.sqrt(1/n*np.sum(m_mf-m_ex).^2)
+    smoothing = .7
+    m = np.random.normal(n) #random init
+    
+    error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2)
+    print(error_mf)
+
+    eps = 10**-13
+    dm = np.inf
+    temp = 0
+    while(dm > eps):
+        temp += 1
+        m_old = m
+        m = smoothing*m +(1-smoothing)*np.tanh(np.dot(w,m) + th)
+        dm = np.max(np.abs(m-m_old))
+    
+    error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2)
+    print(error_mf)
+    
+    print(temp)
+    print(w)
+    print(c)
 
     # %BP
     # %write your code
     # error_bp=sqrt(1/n*sum(m_bp-m_ex).^2)
+    a = np.random.normal(size=(n,n))
+    da = 1
+    temp = 0
+    while(da > eps):
+        temp += 1
+        a_old = a
+        
+        m_pos = 2*np.cosh(w + th + np.sum(a, axis=1))   # axis =1 misschien niet goed
+        m_neg = 2*np.cosh(-w + th + np.sum(a, axis=1))
+
+        a = .5 * (np.log(m_pos) - np.log(m_neg))
+
+        da = np.max(np.abs(a-a_old))
+
+    print(temp)
+
 
 if __name__ == '__main__':
     main()
