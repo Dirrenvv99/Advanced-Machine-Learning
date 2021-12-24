@@ -34,7 +34,7 @@ def main():
         w=sprandsym(n,c1)          #symmetric weight matrix w with c1*n^2 non-zero elements
         np.fill_diagonal(w,0)
         c =~(w==0)                  # sparse 0,1 neighborhood graph 
-        w=beta*((w>0)-(w<0))             # w is sparse with +/-beta on the links
+        w=beta*((w>0).astype(int)-(w<0).astype(int))             # w is sparse with +/-beta on the links
     th = np.random.normal(size = n)*Jth
 
     #EXACT
