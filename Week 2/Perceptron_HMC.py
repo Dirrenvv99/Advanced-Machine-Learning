@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 t = np.loadtxt("t.txt")
 x = np.loadtxt("x.txt")
-alpha = 0.5
+alpha = 0.01
 
 def sigmoid(x):
     return 1/(1+np.exp(-x))
@@ -38,22 +38,18 @@ def grad_G(w):
     result = np.array([.0,.0,.0])
     y_list = y(w)
     for i in range(len(y_list)):
-        if y_list[i] == 0:
-            result += (-1 * (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
-        elif y_list[i] == 1:
-            result += (t[i]/y_list[i]) * y_list[i] * (1 - y_list[i]) * x[i]
-        else:
-            result += (t[i]/y_list[i] - (1-t[i])/(1-y_list[i])) * y_list[i] * (1 - y_list[i]) * x[i]
+        result += (t[i] * (1-y_list[i])  - (1-t[i]) * y_list[i])  * x[i]
     return -1*result 
 
 def grad_E(w):
-    return w
+    return w #Dit klopt wel gewoon, want als je afleid naar w_i krijg je w_i terug. Dus in zn geheel volgt w
 
 def grad_M(w):
     return grad_G(w) + alpha * grad_E(w)
 
 def HMC(tau, eps, iters = 100):
-    w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3))
+    # w = np.random.multivariate_normal(np.array([0,0,0]), np.eye(3))
+    w = np.array([.0,.0,.0])
     w_values = []
     rejections = 0
     for _ in tqdm(range(iters)):
@@ -79,15 +75,18 @@ def HMC(tau, eps, iters = 100):
     return w_values, rejections
 
 def main():
-    tau = 100
     eps = np.sqrt(0.02)
+    tau = round(1/eps) #Deze waarde kies ik omdat ik van het vak monte carlo van natuurkunde weet dat eps*tau ongeveer 1 moet zijn.
+    print(tau)
     iters = 40000
 
     w_values, rejections = HMC(tau, eps, iters)
+    #Deze is wel vrij slecht, maar we gebruiken de waardes die het boek ook aangeeft. Dus ik voorzie hier geen probleem mee (Zou eigenlijk wel minstens 0.4 moeten zijn ofzo)
     print(rejections/iters)
     w_samples_indices =  np.arange(10000, len(w_values), 1000)
     y_samples = [y(w_values[i]) for i in w_samples_indices]
     y_mean = np.mean(y_samples, axis = 0)
+    #Waardes lijken met deze alpha ook te kloppen.
     print(y_mean)
 
     fig, axs = plt.subplots(4)
