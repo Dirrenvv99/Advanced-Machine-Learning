@@ -6,7 +6,7 @@ import scipy.stats as stats
 import scipy.sparse as sparse
 from itertools import product
 
-np.random.seed(42)
+np.random.seed(37)
 n=3                   
 Jth=0.1
 full = False
@@ -34,23 +34,27 @@ def main():
         w=sprandsym(n,c1)          #symmetric weight matrix w with c1*n^2 non-zero elements
         np.fill_diagonal(w,0)
         c =~(w==0)                  # sparse 0,1 neighborhood graph 
-        w=beta*((w>0).astype(int)-(w<0).astype(int))             # w is sparse with +/-beta on the links
-    th = np.random.normal(size = (n,1))*Jth
+        w=beta*((w>0)-(w<0))             # w is sparse with +/-beta on the links
+    th = np.random.normal(size = n)*Jth
 
-    %EXACT
-    sa= s_all(n) ;              % all 2^n spin configurations
-    Ea = 0.5 *sum(sa.*(w*sa')',2) + sa*th; % array of the energies of all 2^n configurations
-    Ea=exp(Ea); 
-    Z=sum(Ea); 
-    p_ex=Ea /Z ;                % probabilities of all 2^n configurations
-    m_ex=sa' *p_ex;             % exact mean values of n spins
-    klad=(p_ex*ones(1,n)).*sa;
-    chi_ex=sa'*klad-m_ex*m_ex'; % exact connected correlations
+    #EXACT
+    sa = np.array(list(product([-1,1], repeat = n)))         #all 2^n spin configurations
+    Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
+    Ea=np.exp(Ea)
+    Z=np.sum(Ea)
+    p_ex = Ea /Z  # probabilities of all 2^n configurations
+    m_ex= np.dot(sa.T,p_ex)  # exact mean values of n spins
+    klad=np.outer(p_ex,np.ones(shape=(1,n)))*sa
+    # print(klad)
+    # print(m_ex)
+    # print(np.sum(klad, axis=0))
+    chi_ex=np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
+    print(chi_ex)
 
-    # %MF
-    # %write your code
-    # m_mf=m;
-    # error_mf=sqrt(1/n*sum(m_mf-m_ex).^2)
+    # MF
+    # write your code
+    # m_mf=m
+    # error_mf=np.sqrt(1/n*np.sum(m_mf-m_ex).^2)
 
     # %BP
     # %write your code
