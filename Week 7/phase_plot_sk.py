@@ -23,12 +23,12 @@ def fixed_point_iteration():
     for index_x, x in enumerate(tqdm(xs)):
         for index_y, y in enumerate(ys):
             #Deze beginwaarden zijn belangrijk voor het resultaat (geen idee waarom). Deze waarde geven de goede plotjes. Verslag is toch niet
-            #benodigd
+            #benodigd. Waarschijnlijk omdat deze waarde in het "midden" beginnen.
             q_old = 0.5
             m_old = 0.5
             q_new = np.inf
             m_new = np.inf
-            epsilon = 0.005
+            epsilon = 0.0000005
 
             diff_q = np.inf
             diff_m = np.inf        
@@ -79,6 +79,7 @@ def main():
 #Comment over de plotjes: De rare strepen in de plotjes zijn een gevolg van quad, wat subclusters gebruikt die adaptief zijn.
 #Waarschijnlijk worden de clusters naar waardeverschil slim gekozen. Daarom lopen deze "lijnen" precies over de overgang waardes
 #En gedragen zich daar dus net wat anders dan de rest wat die lijnen oplevert!
+#Dit is opgelost door de epsilon wat strenger te maken. Ze zijn nu weg met een runtime van 3 minuten, dus helemaal top!
 if __name__ == '__main__':
     main()
     
