@@ -19,7 +19,7 @@ def sprandsym(n, density):
     return result.toarray()
 def main():
     if full: # toggle between full and sparse Ising network
-        # full weight matrix
+        # full weight matrix   
         J0=0                        # J0 and J are as defined for the SK model
         J=0.5
         w=J0/n+J/np.sqrt(n)*np.random.normal(size = (n,n))
@@ -36,7 +36,7 @@ def main():
         c =~(w==0)                  # sparse 0,1 neighborhood graph 
         w=beta*((w>0).astype(int)-(w<0).astype(int))             # w is sparse with +/-beta on the links
     th = np.random.normal(size = n)*Jth
-    w *= 10
+    # w *= 10
     #EXACT
     sa = np.array(list(product([-1,1], repeat = n)))         #all 2^n spin configurations
     Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
@@ -49,31 +49,34 @@ def main():
     # print(m_ex)
     # print(np.sum(klad, axis=0))
     chi_ex=np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
-    print(chi_ex)
+    # print(chi_ex)
 
     # MF
     # write your code
-    smoothing = .7
-    m = np.random.normal(n) #random init
-    
+    smoothing = 0
+    m = np.random.normal(size=n) #random init
+    # print(m)
     error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2)
-    print(error_mf)
+    # print(error_mf)
 
     eps = 10**-13
     dm = np.inf
     temp = 0
     while(dm > eps):
+        # print(m)
         temp += 1
         m_old = m
         m = smoothing*m +(1-smoothing)*np.tanh(np.dot(w,m) + th)
         dm = np.max(np.abs(m-m_old))
     
     error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2)
-    print(error_mf)
+    print(m)
+    print(m_ex)
+    # print(error_mf)
     
-    print(temp)
-    print(w)
-    print(c)
+    # print(temp)
+    # print(w)
+    # print(c)
 
     # %BP
     # %write your code
@@ -91,9 +94,8 @@ def main():
         a = .5 * (np.log(m_pos) - np.log(m_neg))
 
         da = np.max(np.abs(a-a_old))
-
-    print(temp)
-
+    m_bp = np.tanh(th + np.sum(a, axis=1))
+    print(m_bp)
 
 if __name__ == '__main__':
     main()
