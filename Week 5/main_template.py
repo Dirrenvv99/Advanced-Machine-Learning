@@ -49,7 +49,7 @@ def main():
     # print(m_ex)
     # print(np.sum(klad, axis=0))
     chi_ex=np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
-    print(chi_ex)
+    print(m_ex)
 
     # MF
     # write your code
@@ -57,7 +57,7 @@ def main():
     m = np.random.normal(n) #random init
     
     error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2)
-    print(error_mf)
+    # print(error_mf)
 
     eps = 10**-13
     dm = np.inf
@@ -69,11 +69,11 @@ def main():
         dm = np.max(np.abs(m-m_old))
     
     error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2)
-    print(error_mf)
+    # print(error_mf)
     
-    print(temp)
-    print(w)
-    print(c)
+    # print(temp)
+    # print(w)
+    print(m)
 
     # %BP
     # %write your code
@@ -92,7 +92,7 @@ def main():
 
         da = np.max(np.abs(a-a_old))
 
-    print(temp)
+    print(a)
 
 
 if __name__ == '__main__':
