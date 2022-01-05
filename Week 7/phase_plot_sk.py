@@ -3,6 +3,19 @@ from scipy import integrate
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import json
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 def q_func(z,x, y, m_0, q_0):
     J = 1/y
@@ -23,12 +36,12 @@ def fixed_point_iteration():
     for index_x, x in enumerate(tqdm(xs)):
         for index_y, y in enumerate(ys):
             #Deze beginwaarden zijn belangrijk voor het resultaat (geen idee waarom). Deze waarde geven de goede plotjes. Verslag is toch niet
-            #benodigd
+            #benodigd. Waarschijnlijk omdat deze waarde in het "midden" beginnen.
             q_old = 0.5
             m_old = 0.5
             q_new = np.inf
             m_new = np.inf
-            epsilon = 0.005
+            epsilon = 0.0000005
 
             diff_q = np.inf
             diff_m = np.inf        
@@ -59,8 +72,8 @@ def main():
 
     im_0 = ax[0].imshow(qs, extent = [0,2,0,2])
     ax[0].set_title("q")
+    ax[0].set_xlabel("J\N{SUBSCRIPT ZERO}/J")
     ax[0].set_ylabel(r"1/J")
-    ax[0].set_xlabel(r"J/J_0")
 
     fig.colorbar(im_0, cax=cax_0, orientation='vertical')
 
@@ -69,16 +82,26 @@ def main():
 
     im_1 = ax[1].imshow(ms, extent = [0,2,0,2])   
     ax[1].set_title("m")
+    ax[1].set_xlabel("J\N{SUBSCRIPT ZERO}/J")
     ax[1].set_ylabel(r"1/J")
-    ax[1].set_xlabel(r"J/J_0")
 
     fig.colorbar(im_1, cax=cax_1, orientation='vertical')
     
 
     plt.show()
+
+    with open("q_and_m.json", 'w') as f:
+        json.dump({
+            'qs': qs,
+            'ms': ms
+            }, f, cls = NumpyEncoder)
+    
+
+
 #Comment over de plotjes: De rare strepen in de plotjes zijn een gevolg van quad, wat subclusters gebruikt die adaptief zijn.
 #Waarschijnlijk worden de clusters naar waardeverschil slim gekozen. Daarom lopen deze "lijnen" precies over de overgang waardes
 #En gedragen zich daar dus net wat anders dan de rest wat die lijnen oplevert!
+#Dit is opgelost door de epsilon wat strenger te maken. Ze zijn nu weg met een runtime van 3 minuten, dus helemaal top!
 if __name__ == '__main__':
     main()
     
