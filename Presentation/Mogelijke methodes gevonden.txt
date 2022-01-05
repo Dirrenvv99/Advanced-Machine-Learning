@@ -1,0 +1,15 @@
+Linear:
+- PCA (Benoemt in paper oude wiskunde)
+- ICA (Independent component analysis) (Benoemt in paper oude wiskunde)
+- FA (Factor Analysis) (Benoemt in paper oude wiskunde)
+Niet-Linear:
+-SOM (Self Organizing Maps)
+- VQ (Vector Quantization)
+Duidelijke ML:
+- Random forests
+- Neural Networks 
+
+
+
+
+[2, 46, 40, 51, 71
