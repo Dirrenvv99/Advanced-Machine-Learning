@@ -12,15 +12,14 @@ def gradE(x):
     return np.array([A* x[0] + B*x[1], A* x[1] + B*x[0]])
 
 
-def HMC(tau, eps, nr_samples, iters):
+def HMC(tau, eps, nr_samples, iter = 100):
     samples = []
     rejections = []
     for _ in tqdm(range(nr_samples)):
         rejection_count = 0
-        # x = np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]
-        x = np.array([0.,0.])
+        x = np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]
         #g = gradE(x)
-        for _ in range(iters):                
+        for _ in range(iter):                
             p = np.random.multivariate_normal(np.array([0,0]), np.eye(2), 1)[0]
             
             H_old = np.dot(p,p)/2 + E(x)
@@ -33,8 +32,6 @@ def HMC(tau, eps, nr_samples, iters):
             
             H_new = np.dot(p,p)/2 + E(x)
             dH = H_new - H_old
-            # if eps == 0.2:
-                # print(dH)
 
             if dH != dH:
                 print("something went wrong and produces NaN values")
@@ -51,11 +48,12 @@ def HMC(tau, eps, nr_samples, iters):
 
 def main():
     nr_samples = 100
-    taus = [10, 20, 30]
-    epss = [0.01, 0.02, 0.03]
+    iters = 1000
+    taus = [5, 19, 30]
+    epss = [0.005, 0.055, 0.2]
     fig, axs = plt.subplots(len(epss), len(taus))
 
-    real_samples = np.random.multivariate_normal([0,0], [[1.001,0.999],[0.999,1.001]], 100)
+    real_samples = np.random.multivariate_normal([0,0], [[1,0.998],[0.998,1]], 100)
 
     # samples, rejections = HMC(taus[0], epss[0], nr_samples, iters)
     
@@ -67,7 +65,6 @@ def main():
     # plt.legend()
 
     for tau, eps in [(i, j) for i in taus for j in epss]:
-        iters = int(np.ceil(8/(eps*tau)**2))
         samples, rejections = HMC(tau, eps, nr_samples, iters)
         
         print(f"{tau},\t{eps}\t{np.mean([rejection/iters for rejection in rejections])}")
@@ -76,14 +73,9 @@ def main():
 
         axs[ei, ti].scatter([x[0] for x in real_samples], [x[1] for x in real_samples], color = "blue", label = "normally sampled", marker = ".")
         axs[ei, ti].scatter([x[0] for x in samples], [x[1] for x in samples], color = "red", label = "samples")
-        axs[ei, ti].set_title(f"tau: {tau}; epsilon: {eps}; iters: {iters}")
-        axs[ei, ti].set_xlabel('x1')
-        axs[ei, ti].set_ylabel('x2')
+        axs[ei, ti].set_title(f"sample plot with tau: {tau}; epsilon: {eps}")
         if (ei+ti==0):
             axs[ei, ti].legend()
-        print("iters:" , iters)
-        print("mean:" , np.mean(samples, axis=0))
-        print("var:", np.cov(np.array(samples).T), "real:", np.linalg.inv([[250.25,-249.75],[-249.75,250.25]]))
     plt.show()
         
 
