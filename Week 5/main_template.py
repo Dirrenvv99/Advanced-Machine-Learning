@@ -19,8 +19,7 @@ def sprandsym(n, density):
 
 def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
     # Mean Field approximation
-    smoothing = .7
-    m = np.random.normal(n) # random init
+    m = np.random.normal(size=n) # random init
 
     eps = 10**-13
     dm = np.inf
@@ -60,8 +59,7 @@ def bp(n, m_ex, w, th, eps=10**-13):
     
 
 def main():
-    np.random.seed(37)
-
+    np.random.seed(37) #TODO random over weights
     # toggle between full and sparse Ising network
     if full:                    # full weight matrix
         J0 = 0                  # J0 and J are as defined for the SK model
@@ -80,58 +78,86 @@ def main():
         c = ~(w==0)             # sparse 0,1 neighborhood graph
         w = beta*((w>0).astype(int)-(w<0).astype(int)) # w is sparse with +/-beta on the links
 
-    errors, iters, error_chis = [],[],[]
-    x = np.linspace(0, 2, num=20)
+    x = np.linspace(0, 2, num=10)
+    error_mean, error_std = [], []
+    iter_mean, iter_std = [], []
+    chi_mean, chi_std = [], []
 
     for Jth in tqdm(x):
-        np.random.seed(0)
-        th = np.random.normal(size = n)*Jth
+        errors, iters, error_chis = [],[],[]
 
-        # EXACT
-        sa = np.array(list(product([-1,1], repeat = n)))        # all 2^n spin configurations
-        Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
-        Ea = np.exp(Ea)
-        Z = np.sum(Ea)
-        p_ex = Ea /Z             # probabilities of all 2^n configurations
-        m_ex = np.dot(sa.T,p_ex) # exact mean values of n spins
+        for _ in range(5):
 
-        klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
-        chi_ex = np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
+            # Jth=.1
+            # np.random.seed(0)
+            th = np.random.normal(size = n)*Jth
 
-        error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=.5)
-        chi_mf = np.dot(sa.T,klad)-np.dot(m_mf,m_mf.T) # exact connected correlations
-        # print("MF APPROX")
-        # print(f"ERROR: {error_mf},\tITER: {iter_mf},\tCHI: {chi_mf}\n")
+            # EXACT
+            sa = np.array(list(product([-1,1], repeat = n)))        # all 2^n spin configurations
+            Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
+            Ea = np.exp(Ea)
+            Z = np.sum(Ea)
+            p_ex = Ea /Z             # probabilities of all 2^n configurations
+            m_ex = np.dot(sa.T,p_ex) # exact mean values of n spins
 
-        error_bp, iter_bp, m_bp = bp(n,m_ex,w,th)
-        chi_bp = np.dot(sa.T,klad)-np.dot(m_bp,m_bp.T) # exact connected correlations
-        # print("BP")
-        # print(f"ERROR: {error_bp},\tITER: {iter_bp},\tCHI: {chi_bp}\n")
+            klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
+            chi_ex = np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
 
-        errors.append([error_mf, error_bp])
-        iters.append([iter_mf, iter_bp])
-        error_chis.append([chi_mf, chi_bp])
+            error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=.5)
+            chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
+            error_chi_mf = np.sqrt(1/n*np.sum(chi_ex-chi_mf)**2)
+            # print(error_chi_mf)
+            # print() # np.sqrt(np.mean(np.square(np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T))))
+            # print("MF APPROX")
+            # print(f"ERROR: {error_mf},\tITER: {iter_mf},\tCHI: {chi_mf}\n")
+
+            error_bp, iter_bp, m_bp = bp(n,m_ex,w,th)
+            chi_bp = 0#np.dot(sa.T,klad)-np.dot(m_bp,m_bp.T) # exact connected correlations
+            # print("BP")
+            # print(f"ERROR: {error_bp},\tITER: {iter_bp},\tCHI: {chi_bp}\n")
+
+            errors.append([error_mf, error_bp])
+            iters.append([iter_mf, iter_bp])
+            error_chis.append([error_chi_mf, chi_bp])
+
+        error_mean.append(np.mean(errors, axis=0))
+        error_std.append(np.std(errors, axis=0))
+        iter_mean.append(np.mean(iters, axis=0))
+        iter_std.append(np.std(iters, axis=0))
+        chi_mean.append(np.mean(error_chis, axis=0))
+        chi_std.append(np.std(error_chis, axis=0))
+
+    def helper(plot, x, mean, std):
+        mf_mean = np.array([i[0] for i in mean])
+        mf_std = np.array([i[0] for i in std])
+        plot.plot(x, mf_mean, label="mf")
+        plot.fill_between(x, mf_mean-mf_std, mf_mean+mf_std, alpha=.5)
+
+        bp_mean = np.array([i[1] for i in mean])
+        bp_std = np.array([i[1] for i in std])
+        plot.plot(x, bp_mean, label="bp")
+        plot.fill_between(x, bp_mean-bp_std, bp_mean+bp_std, alpha=.5)
+
+        plot.set_xlabel(r'$\beta$')
+        plot.legend()
 
     _, axs = plt.subplots(1,3)
 
-
     axs[0].set_title('error')
-    # axs[0].plot(x, [np.sum(e[0]) for e in errors], label = f"mf") # Geen idee of dit sum moet zijn
-    # axs[0].plot(x, [np.sum(e[1]) for e in errors], label = f"bp")
+    helper(axs[0], x, error_mean, error_std)
     axs[0].set_xlabel(r'$\beta$')
     axs[0].legend()
 
     axs[1].set_title('iterations')
-    axs[1].plot(x, [i[0] for i in iters], label = f"mf")
-    axs[1].plot(x, [i[1] for i in iters], label = f"bp")
+    helper(axs[1], x, iter_mean, iter_std)
     axs[1].set_xlabel(r'$\beta$')
     axs[1].legend()
 
-    axs[2].set_title('error chi')
+    # axs[2].set_title('error chi')
     # axs[2].plot(x, [ec[0] for ec in error_chis], label = f"mf")
     # axs[2].plot(x, [ec[1] for ec in error_chis], label = f"bp")
-    axs[2].set_xlabel(r'$\beta$')
-    axs[2].legend()
+    # axs[2].set_xlabel(r'$\beta$')
+    # axs[2].legend()
 
     plt.show()
 
