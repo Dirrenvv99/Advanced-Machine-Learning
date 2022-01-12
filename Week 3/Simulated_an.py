@@ -92,17 +92,17 @@ def main():
             enum = fs
         else: 
             enum = del_betas
-        for index, del_beta in enumerate(enum):
-            if index == (len(del_betas) - 1):
+        for index, value in enumerate(enum):
+            if index == (len(enum) - 1):
                 L = 1000
             min_values = []
             running_times = []
             for _ in tqdm(range(N_runs)):
                 start_time = time.time()
                 if exp_schedule:
-                    means = SK(L, AK=True, del_beta = del_betas)
+                    means = SK(L, AK=False, f = value)
                 else:
-                    means = SK(L, AK=False, f = fs)
+                    means = SK(L, AK=True, del_beta = value)
                 stop_time = time.time()
                 running_time = round(stop_time - start_time, 1)
                 min_values.append(means[-1])
