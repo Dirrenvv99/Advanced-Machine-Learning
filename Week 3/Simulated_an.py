@@ -3,10 +3,13 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from makedata_python import make_data
 import argparse
+from tabulate import tabulate
+import time
 
 # w = make_data(5,False)
 w = np.loadtxt("w500")
-beta_init = 0.001
+beta_init_AK = 0.001
+beta_init_exp = 0.1
 N_runs = 20
 
 parser = argparse.ArgumentParser(description= 'SA Opitimization of Ising model energy.')
@@ -31,8 +34,6 @@ def MH(x,beta,sites, energy):
     energies = []    
     for site in sites:
         a, diff = a_value(x,beta, site)
-        # print("a: ", a)
-        # print("diff: ", diff)
         if a >= 1:
             x[site] = -1 * x[site]
             energy = energy + diff
@@ -40,71 +41,133 @@ def MH(x,beta,sites, energy):
             if np.random.random() < a:
                 x[site] = -1*x[site]
                 energy = energy + diff
-        # print(energy)
         energies.append(energy)
     return x, energies
     
+def determine_initial_beta(x):
+    #Notice that this implementation just tries all different spin flip possibilities, which is practically the same as proposed within the slides
+    highest_diff = -1 * np.inf
+    for site in range(0,len(x)):
+        diff = E_dif(x,site)
+        if diff > highest_diff:
+            highest_diff = diff
+    return 1/highest_diff
 
 def SK_AK(del_beta, beta_init, L):
-    var_E = 1
+    var_E = np.inf
     means = []
-    eps = 0.0005
-    beta = beta_init
     x = np.random.randint(0,2,size = w.shape[0])
     x[x == 0] = -1 
     energy = E(x)
-    while var_E > eps:
-        sites = np.random.randint(0,w.shape[0], size = L)
+    beta = determine_initial_beta(x)
+    counter = 0
+    vars = []
+    betas= []
+    while var_E > 0:
         beta = beta  + del_beta/np.sqrt(var_E)
-        x, energies = MH(x,beta,sites, energy)
+        betas.append(beta)
+        counter += 1
+        sites = np.random.randint(0,w.shape[0], size = L)
+        x, energies = MH(x,beta,sites, energy)        
         energy = energies[-1]
         means.append(np.mean(energies))
         var_E = np.std(energies)
-        # print(var_E)
+        vars.append(var_E)
+    
+    # print("\n", counter)
+    # plt.plot([x for x in range(counter)],betas)
+    # plt.show()
     return means
 
 def SK_Exp(f, beta_init, L):
-    var_E = 1
+    var_E = np.inf
     means = []
-    eps = 0.0005
-    beta = beta_init
     x = np.random.randint(0,2,size = w.shape[0])
     x[x == 0] = -1 
     energy = E(x)
-    while var_E > eps:
+    beta = determine_initial_beta(x)
+    counter = 0
+    vars = []
+    betas= []
+    while var_E > 0:
+        beta = beta * f
+        betas.append(beta)
+        counter += 1
         sites = np.random.randint(0,w.shape[0], size = L)
-        beta = beta* f
-        x, energies = MH(x,beta,sites, energy)
+        x, energies = MH(x,beta,sites, energy)        
         energy = energies[-1]
         means.append(np.mean(energies))
         var_E = np.std(energies)
-        # print(var_E)
+        vars.append(var_E)
+    
+    print("\n", counter)
+    plt.plot([x for x in range(counter)],betas)
+    plt.show()
     return means
-
 
 def main():
     if exp_schedule == False:
         del_betas = [0.1, 0.01, 0.001]
-        for del_beta in del_betas:
+        table = []
+        for index, del_beta in enumerate(del_betas):
             min_values = []
-            for _ in tqdm(range(N_runs)):
-                means = SK_AK(del_beta, beta_init, 500)
+            running_times = []
+            for  _ in tqdm(range(N_runs)):
+                start_time = time.time()
+                means = SK_AK(del_beta, beta_init_AK, 500)
+                stop_time = time.time()
+                running_time = round(stop_time - start_time, 1)
                 min_values.append(means[-1])
+                running_times.append(running_time)
+            table.append((del_beta, 500, np.min(running_times), str(np.mean(min_values)) + " +- " + str(round(np.std(min_values), 0))))      
             print("minimal cost: \n", np.mean(min_values), " +- ", np.std(min_values))
             print("lowest reached value: \n", np.min(min_values))
-    else: 
-        fs = [1.01,1.001,1.0002]
-        for f in fs:
-            min_values = []
-            for _ in tqdm(range(N_runs)):
-                means = SK_Exp(f, beta_init, 500)
-                min_values.append(means[-1])
-            print("minimal cost: \n", np.mean(min_values), " +- ", np.std(min_values)) 
-            print("lowest reached value: \n", np.min(min_values))     
+            if index == (len(del_betas) - 1):
+                min_values = []
+                running_times = []
+                for  _ in tqdm(range(N_runs)):
+                    start_time = time.time()
+                    means = SK_AK(del_beta, beta_init_AK, 1000)
+                    stop_time = time.time()
+                    running_time = round(stop_time - start_time, 1)
+                    min_values.append(means[-1])
+                    running_times.append(running_time)
+                table.append((del_beta, 1000, np.min(running_times), str(np.mean(min_values)) + " +- " + str(round(np.std(min_values), 0)))) 
+                print("minimal cost: \n", np.mean(min_values), " +- ", np.std(min_values))
+                print("lowest reached value: \n", np.min(min_values))
+        print(tabulate(table, tablefmt= "latex"))
 
-        # if del_beta == del_betas[-1]:
-        #     means_1000, stds_1000 = SK_AK(del_beta, beta_init, 1000)
-        
+            
+    else: 
+        fs = [1.01, 1.001, 1.0002]
+        table = []
+        for index, f in enumerate(fs):
+            min_values = []
+            running_times = []
+            for _ in tqdm(range(N_runs)):
+                start_time = time.time()
+                means = SK_Exp(f, beta_init_exp, 500)
+                stop_time = time.time()
+                running_time = round(stop_time - start_time,1)
+                running_times.append(running_time)
+                min_values.append(means[-1])
+            table.append((f, 500, np.min(running_times), str(np.mean(min_values)) + " +- " + str(round(np.std(min_values), 0))))  
+            print("minimal cost: \n", np.mean(min_values), " +- ", np.std(min_values)) 
+            print("lowest reached value: \n", np.min(min_values))  
+            if index == len(fs) - 1:
+                min_values = []
+                running_times = []
+                for _ in tqdm(range(N_runs)):
+                    start_time = time.time()
+                    means = SK_Exp(f, beta_init_exp, 1000)
+                    stop_time = time.time()
+                    running_time = round(stop_time - start_time,1)
+                    running_times.append(running_time)
+                    min_values.append(means[-1])
+                table.append((f, 1000, np.min(running_times), str(np.mean(min_values)) + " +- " + str(round(np.std(min_values), 0))))  
+                print("minimal cost: \n", np.mean(min_values), " +- ", np.std(min_values)) 
+                print("lowest reached value: \n", np.min(min_values))     
+        print(tabulate(table, tablefmt= "latex"))       
 
 
 if __name__ == '__main__':
