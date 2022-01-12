@@ -69,7 +69,7 @@ def main():
     for Jth in tqdm(x):
         errors, iters, error_chis = [],[],[]
 
-        for _ in range(10):
+        for _ in range(1):
 
             # toggle between full and sparse Ising network
             if full:                    # full weight matrix
@@ -108,8 +108,10 @@ def main():
             error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=.5)
             # print(2)
 
-            # chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
-            error_chi_mf = 0 #np.sqrt(1/n*np.sum(chi_ex-chi_mf)**2)
+            chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
+            error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
+            print(np.sum(np.tril(chi_ex-chi_mf, -1)))
+            # error_chi_mf = np.sqrt(1/(n**2)*np.sum(chi_ex-chi_mf)**2)
             # print(error_chi_mf)
             # print() # np.sqrt(np.mean(np.square(np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T))))
             # print("MF APPROX")
@@ -159,11 +161,10 @@ def main():
     axs[1].set_xlabel(r'$\beta$')
     axs[1].legend()
 
-    # axs[2].set_title('error chi')
-    # axs[2].plot(x, [ec[0] for ec in error_chis], label = f"mf")
-    # axs[2].plot(x, [ec[1] for ec in error_chis], label = f"bp")
-    # axs[2].set_xlabel(r'$\beta$')
-    # axs[2].legend()
+    axs[2].set_title('error chi')
+    helper(axs[2], x, chi_mean, chi_std)
+    axs[2].set_xlabel(r'$\beta$')
+    axs[2].legend()
 
     plt.show()
 
