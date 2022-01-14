@@ -5,6 +5,7 @@ from makedata_python import make_data
 import argparse
 from tabulate import tabulate
 import time
+
 np.random.seed(123)
 
 # w = make_data(5,False)
@@ -21,55 +22,70 @@ exp_schedule = False
 if args.s > 0:
     exp_schedule = True
 
-def E(x):
-    return -0.5 * np.dot(np.dot(x,w),x)
+def E(diff_array):
+    return -0.25 * np.sum(diff_array)
 
-def E_dif(x, site):
-    return 2 * x[site] * np.dot(w[site],x)
+# def E_dif(E_array, site):
+#     res = 2 * np.sum(E_array[site])
+#     return res
 
-def a_value(x,beta, site):
-    starting  = time.time()
-    diff = E_dif(x,site)
-    stopping = time.time()
-    run = stopping - starting
-    return np.exp(-1*beta *diff), diff, run
+# def a_value(E_array,difbeta, site):
+#     starting  = time.time()
+#     diff = E_dif(E_array,site)
+#     stopping = time.time()
+#     run = stopping - starting
+#     return np.exp(-1*beta *diff), diff, run
 
-def MH(x,beta,sites, energy):
+def MH(E_array, diff_array, beta,sites, energy):
     energies = []   
-    a_run = 0 
     for site in sites:
-        a, diff, run = a_value(x,beta, site)
-        a_run = a_run + run
-        if a >= 1:
-            x[site] = -1 * x[site]
+        diff = diff_array[site]
+        a = np.exp(-1*beta*diff)
+        if a >= 1:            
             energy = energy + diff
+            E_array[site] = -1 * E_array[site]
+            E_array[:,site] = E_array[:,site] * -1
+            diff_array += 4 * E_array[:,site]
+            diff_array[site] = -1 * diff_array[site]
         else:
-            if np.random.random() < a:
-                x[site] = -1*x[site]
+            if np.random.random() < a:                
                 energy = energy + diff
+                E_array[site] = -1 * E_array[site]
+                E_array[:,site] = E_array[:,site] * -1
+                diff_array += 4 * E_array[:,site]
+                diff_array[site] = -1 * diff_array[site]
         energies.append(energy)
-    return x, energies, a_run
+    return E_array, energies, diff_array
     
-def determine_initial_beta(x):
-    #Notice that this implementation just tries all different spin flip possibilities, which is practically the same as proposed within the slides
-    highest_diff = -1 * np.inf
-    for site in range(0,len(x)):
-        diff = E_dif(x,site)
-        if diff > highest_diff:
-            highest_diff = diff
-    return 1/highest_diff
+# def determine_initial_beta(diff_array):
+#     #Notice that this implementation just tries all different spin flip possibilities, which is practically the same as proposed within the slides
+#     highest_diff = -1 * np.inf
+#     for site in range(0,w.shape[0]):
+#         diff = diff_array[site]
+#         if diff > highest_diff:
+#             highest_diff = diff
+#     return 1/highest_diff
+
+def create_E_and_diff_array(x):
+    E_array = np.empty_like(w)
+    for index, _ in enumerate(E_array):
+        E_array[index] = np.multiply(w[index],x)
+    E_array = np.multiply(E_array, x)
+    diff_array = np.array([2 * np.sum(E_array[i]) for i,_ in enumerate(E_array)])
+    print(np.sum(np.diag(E_array)))
+    return E_array, diff_array
 
 def SK(L, AK=True, del_beta=0, f=0):
     var_E = np.inf
     means = []
     x = np.random.randint(0,2,size = w.shape[0])
     x[x == 0] = -1 
-    energy = E(x)
-    beta = determine_initial_beta(x)
+    E_array, diff_array = create_E_and_diff_array(x)
+    energy = E(diff_array)
+    beta = 1/np.max(diff_array)
     counter = 0
     vars = []
     betas= []
-    total_a_run = 0
     while var_E > 0:
         if AK:
             beta = beta  + del_beta/np.sqrt(var_E)
@@ -78,8 +94,7 @@ def SK(L, AK=True, del_beta=0, f=0):
         betas.append(beta)
         counter += 1
         sites = np.random.randint(0,w.shape[0], size = L)
-        x, energies, a_run = MH(x,beta,sites, energy)   
-        total_a_run += a_run     
+        E_array, energies, diff_array = MH(E_array,diff_array,beta,sites, energy)       
         energy = energies[-1]
         means.append(np.mean(energies))
         var_E = np.std(energies)**2
@@ -90,12 +105,11 @@ def SK(L, AK=True, del_beta=0, f=0):
     # print("\n", counter)
     # plt.plot([x for x in range(counter)],betas)
     # plt.show()
-    print(round(total_a_run,2))
     return means, betas, vars
 
 def main():
-    del_betas = [0.1, 0.01]
-    # del_betas = [0.1, 0.01, 0.001, 0.001]
+    # del_betas = [0.1, 0.01]
+    del_betas = [0.1, 0.01, 0.001, 0.001]
     fs = [1.01, 1.001, 1.0002, 1.0002]
     table = []
     L = 500
@@ -105,8 +119,8 @@ def main():
         enum = del_betas
     fig, ax = plt.subplots(len(enum),3, constrained_layout = True)
     for index, value in enumerate(enum):
-        # if index == (len(enum) - 1):
-        #     L = 1000
+        if index == (len(enum) - 1):
+            L = 1000
         min_values = []
         running_times = []
         for _ in tqdm(range(N_runs)):
