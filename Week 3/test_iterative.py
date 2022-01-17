@@ -11,7 +11,7 @@ import time
 #To run the code as intended, we need n = 500, but the n can be chosen.
 
 parser = argparse.ArgumentParser(description= 'SA Opitimization of Ising model energy.')
-parser.add_argument('--ferro',type= int, default= 0, help='0: Frustrated Problem; 1 : Ferromagnetic problem; 2 or higher: w500 problem')
+parser.add_argument('--ferro',type= int, default= 2, help='0: Frustrated Problem; 1 : Ferromagnetic problem; 2 or higher: w500 problem')
 args = parser.parse_args()
 
 
@@ -21,35 +21,58 @@ if args.ferro == 0:
 elif args.ferro == 1:
     w = make_data(500, ferro = True)
     print("Ferromagnetic problem instance")
-else:
+elif args.ferro ==2:
     w = np.loadtxt("w500")
     print("w500 problem")
+else:
+    w = np.array([[0,2,3],[2,0,6], [3,6,0]])
+    print("Testing problem")
+
 rng = np.random.default_rng()
 
+def E(diff_array):
+    return -0.25 * np.sum(diff_array)
 
-def E(x):
-    return -0.5 * np.dot(np.dot(x,w),x)
+# def E_dif(x, site):
+#     return 2 * x[site] * np.dot(w[site],x)
 
-def E_dif(x, site):
-    return 2 * x[site] * np.dot(w[site],x)
+def create_E_and_diff_array(x):
+    E_array = np.empty_like(w)
+    for index, _ in enumerate(E_array):
+        E_array[index] = np.multiply(w[index],x) *x[index]
+    diff_array = np.array([2 * np.sum(E_array[i]) for i,_ in enumerate(E_array)])
+    if args.ferro > 2:
+        print(x)
+        print(E_array)
+    return E_array, diff_array
 
-def iterative_finder(sites): 
+def iteration(E_array, diff_array, site):
+    diff = diff_array[site]
+    real_diff = 0
+    if diff < 0:
+        real_diff = diff
+        E_array[site] = -1 * E_array[site]
+        E_array[:,site] = E_array[:,site] * -1
+        diff_array += 4 * E_array[:,site]
+        diff_array[site] = -1 * diff_array[site]
+    return real_diff
+def iterative_finder(L): 
+    sites = np.random.randint(0,w.shape[0], size = L)
     x = np.random.randint(0,2,size = w.shape[0])
-    x[x == 0] = -1        
-    Energy = E(x)
+    x[x == 0] = -1      
+    E_array, diff_array = create_E_and_diff_array(x)  
+    energy = E(diff_array)
+    # differences = [iteration(E_array, diff_array, site) for site in sites]
+
     for site in sites:
-        diff = E_dif(x,site)
-        if diff < 0:
-            Energy = Energy + diff
-            x[site] = x[site] * -1
-    return (x, Energy)
+        energy += iteration(E_array, diff_array, site)
+    return (x, energy)
 
 
 
 def iterative_method(K, L):
     results_full = []
-    sites = np.random.randint(0,w.shape[0], size = L)
-    results_full = [iterative_finder(sites) for _ in range(K)]
+    results_full = [iterative_finder(L) for _ in range(K)]
     results_full = np.array(results_full)
     energies = results_full[:,1]
     results = results_full[:,0]
@@ -61,7 +84,7 @@ def main():
     ks = np.array([20,100])
     # ks = np.array([20,100,200,500,1000,2000,4000]) #Change this to other values for a.) to see when K becomes big enough for reliable results.
     #watch that the K = 4000 might take more than 60 minutes of running (at least on Dirren's cpu)
-    L = 5000 #'normal' value that closely matched results found within excercise.
+    L = 17500 #'normal' value that closely matched results found within excercise.
     N_runs = 20
     table = []
     for k in ks:
