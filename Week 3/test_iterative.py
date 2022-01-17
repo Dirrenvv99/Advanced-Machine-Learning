@@ -80,7 +80,7 @@ def iterative_finder(E_array, diff_array, L, K, json_print = False):
         if json_print:
             energies.append(energy)
     if json_print:
-        with open("energy_iterative_K{}.json".format(K), 'w') as f:
+        with open("energy_iterative_S{}_K{}.json".format(args.s,K), 'w') as f:
             json.dump({
                 'K': K,
                 'L': L,
@@ -132,7 +132,7 @@ def main():
         print("Mean energy over ", N_runs, " runs : ", np.mean(energys), " +- ", np.std(energys))
         print("lowest energy found: ", min_energy)
         table.append((k,np.min(run_times), str(round(np.mean(energys))) + " +- " + str(round(np.std(energys)))))
-    with open("Full_Table_iterative.json", 'w') as f:
+    with open("Full_Table_iterative_S{}.json".format(args.s), 'w') as f:
         json.dump({
             'full_table': table,
             'lowest_E' : min_energy
