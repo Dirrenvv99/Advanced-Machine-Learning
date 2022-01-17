@@ -21,7 +21,6 @@ def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
     # Mean Field approximation
     m = np.random.normal(size=n) # random init
 
-    eps = 10**-13
     dm = np.inf
     iterations = 0
     while(dm > eps):
@@ -45,11 +44,16 @@ def bp(n, m_ex, w, th, c, eps=10**-13):
         iterations += 1
         a_old = a
 
+        # print(th)
+        # print(w)
         m_pos = 2*np.cosh(w + th + np.sum(np.multiply(a,c), axis=0))
+        # print(m_pos)
         m_neg = 2*np.cosh(-w + th + np.sum(np.multiply(a,c), axis=0))
+        # print(m_neg)
 
         a = .5 * (np.log(m_pos) - np.log(m_neg))
-
+        # print(a)
+        # exit()
         da = np.max(np.abs(a-a_old))
 
     m = np.tanh(np.sum(a, axis=0) + th)
@@ -110,7 +114,7 @@ def main():
 
             chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
             error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
-            print(np.sum(np.tril(chi_ex-chi_mf, -1)))
+            # print(np.sum(np.tril(chi_ex-chi_mf, -1)))
             # error_chi_mf = np.sqrt(1/(n**2)*np.sum(chi_ex-chi_mf)**2)
             # print(error_chi_mf)
             # print() # np.sqrt(np.mean(np.square(np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T))))
@@ -120,13 +124,13 @@ def main():
             error_bp, iter_bp, m_bp = bp(n,m_ex,w,th, c)
             # print(3)
 
-            chi_bp = 0#np.dot(sa.T,klad)-np.dot(m_bp,m_bp.T) # exact connected correlations
+            error_chi_bp = 0#np.dot(sa.T,klad)-np.dot(m_bp,m_bp.T) # exact connected correlations
             # print("BP")
             # print(f"ERROR: {error_bp},\tITER: {iter_bp},\tCHI: {chi_bp}\n")
 
             errors.append([error_mf, error_bp])
             iters.append([iter_mf, iter_bp])
-            error_chis.append([error_chi_mf, chi_bp])
+            error_chis.append([error_chi_mf, error_chi_bp])
 
         error_mean.append(np.mean(errors, axis=0))
         error_std.append(np.std(errors, axis=0))
