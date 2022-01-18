@@ -165,14 +165,14 @@ def SK(L, AK=True, del_beta=0, f=0):
                 'stds: ': np.sqrt(vars)
                 }, f, cls = NumpyEncoder)
     else:
-        with open("energy_SA_EXP_f{}.json".format(f), 'w') as f:
+        with open("energy_SA_EXP_f{}.json".format(f), 'w') as file:
             json.dump({
                 'f:': f,
                 'L': L,
                 'means': means,
                 'betas:': betas,
                 'stds: ': np.sqrt(vars)
-                }, f, cls = NumpyEncoder)
+                }, file, cls = NumpyEncoder)
 
     
     # print("\n", counter)
@@ -221,6 +221,12 @@ def main():
                 'full_table': table,
                 'lowest_E' : min_energy
                 }, f, cls = NumpyEncoder)    
+    else:
+        with open("Full_Table_SA_AK.json", 'w') as f:
+            json.dump({
+                'full_table': table,
+                'lowest_E' : min_energy
+                }, f, cls = NumpyEncoder)  
     print(tabulate(table, tablefmt= "latex"))
 
         
