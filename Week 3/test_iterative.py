@@ -105,8 +105,11 @@ def iterative_method(E_array, diff_array , K, L, json_print = False):
 def main():
     # ks = np.array([20])
     ks = np.array([20,100,200,500,1000,2000,4000])
-    #watch that the K = 4000 on dirren CPU takes 100 * 20 seconds approx. For Olivier should be about 60 * 20 seconds (given previous results)
-    L = 17500 #'normal' value that closely matched results found within excercise.
+    #watch that the K = 4000 on dirren CPU takes 100 * 20 seconds approx. For Olivier should be about 60 * 20 seconds (given previous results). For frustrated problems.
+    if args.ferro == 1:
+        L = 5000 #Lower value for ferromagnetic problem, chosen via plots, since this context will result in faster convergence
+    else:
+        L = 17500 #Lowest value with similar results for W500 with respect to the assignment
     N_runs = 20
     table = []
     x = np.random.randint(0,2,size = w.shape[0])

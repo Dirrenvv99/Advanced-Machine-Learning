@@ -8,16 +8,20 @@ import os
 
 
 parser = argparse.ArgumentParser(description= 'SA Opitimization of Ising model energy.')
-parser.add_argument('--schedule', default= "AK", help='AK : AK schedule; EXP: exponential schedule')
+parser.add_argument('--schedule', default= "NOT_FOUND", help='AK : AK schedule; EXP: exponential schedule')
 args = parser.parse_args()
 
 
 if platform == "linux" or platform == "linux2" or platform == "darwin":
     SA_AK_DIR = "./SA_AK"
     SA_EXP_DIR = "./SA_EXP"
+    IT_500_DIR = "./ITERATIVE_500"
+    IT_FERRO_DIR = "./ITERATIVE_FERRO"
 elif platform == "win32":
     SA_AK_DIR = ".\SA_AK"
     SA_EXP_DIR = ".\SA_EXP"
+    IT_500_DIR = ".\ITERATIVE_500"
+    IT_FERRO_DIR = ".\ITERATIVE_FERRO"
 
 if args.schedule == "AK":
     for file in os.scandir(SA_AK_DIR):
@@ -46,7 +50,7 @@ if args.schedule == "AK":
                 plt.suptitle("Delta Beta: " + str(del_beta) + " Simulated Annealing with AK schedule")
                 # plt.savefig(str(del_beta) + "SA_AK_SC.png", bbox_inches = "tight")
                 fig.savefig(str(del_beta) + "_SA_AK_SC.png", dpi=500)
-else:
+elif args.schedule == "EXP":
     for file in os.scandir(SA_EXP_DIR):
         if file.is_file():
             with open(file.path) as file:                
@@ -73,6 +77,37 @@ else:
                 plt.suptitle("f : " + str(f) + " Simulated Annealing with exponential schedule")
                 # plt.savefig(str(del_beta) + "SA_AK_SC.png", bbox_inches = "tight")
                 fig.savefig(str(f) + "_SA_EXP_SC.png", dpi=500)
+elif args.schedule == "ITERATIVE_500":
+    for file in os.scandir(IT_500_DIR):
+        if file.is_file():
+            with open(file.path) as file:
+                data_dict = json.load(file)
+                K = data_dict['K']
+                L = data_dict['L']
+                energy = np.array(data_dict['energy'])
+                fig = plt.figure()
+                plt.plot([x for x in range(len(energy))], energy)
+                fig.set_size_inches((11,11), forward = False)
+                plt.xlabel("#iterations")
+                plt.ylabel("Energy")
+                plt.title("Energy of solution for 1 loop/restart, with K = " + str(K) + ", for W500 problem")
+                plt.savefig("K_" + str(K) + "_Energy_evolution_it_500.png", dpi = 500)
+elif args.schedule == "ITERATIVE_FERRO":
+    for file in os.scandir(IT_FERRO_DIR):
+        if file.is_file():
+            with open(file.path) as file:
+                data_dict = json.load(file)
+                K = data_dict['K']
+                L = data_dict['L']
+                energy = np.array(data_dict['energy'])
+                fig = plt.figure()
+                plt.plot([x for x in range(len(energy))], energy)
+                fig.set_size_inches((11,11), forward = False)
+                plt.xlabel("#iterations")
+                plt.ylabel("Energy")
+                plt.title("Energy of solution for 1 loop/restart, with K = " + str(K) + ", for random ferromagnetic problem")
+                plt.savefig("K_" + str(K) + "_Energy_evolution_it_ferro.png", dpi = 500)
+
         
         
 
