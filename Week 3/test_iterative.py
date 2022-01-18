@@ -103,8 +103,8 @@ def iterative_method(E_array, diff_array , K, L, json_print = False):
     return  energies, min_energy
 
 def main():
-    ks = np.array([20])
-    # ks = np.array([20,100,200,500,1000,2000,4000])
+    # ks = np.array([20])
+    ks = np.array([20,100,200,500,1000,2000,4000])
     #watch that the K = 4000 on dirren CPU takes 100 * 20 seconds approx. For Olivier should be about 60 * 20 seconds (given previous results)
     L = 17500 #'normal' value that closely matched results found within excercise.
     N_runs = 20
