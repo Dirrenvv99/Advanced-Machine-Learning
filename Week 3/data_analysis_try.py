@@ -17,11 +17,13 @@ if platform == "linux" or platform == "linux2" or platform == "darwin":
     SA_EXP_DIR = "./SA_EXP"
     IT_500_DIR = "./ITERATIVE_500"
     IT_FERRO_DIR = "./ITERATIVE_FERRO"
+    IT_FRUSTRATED_DIR = "./ITERATIVE_FRUSTRATED"
 elif platform == "win32":
     SA_AK_DIR = ".\SA_AK"
     SA_EXP_DIR = ".\SA_EXP"
     IT_500_DIR = ".\ITERATIVE_500"
     IT_FERRO_DIR = ".\ITERATIVE_FERRO"
+    IT_FRUSTRATED_DIR = ".\ITERATIVE_FRUSTRATED"
 
 if args.schedule == "AK":
     for file in os.scandir(SA_AK_DIR):
@@ -107,6 +109,21 @@ elif args.schedule == "ITERATIVE_FERRO":
                 plt.ylabel("Energy")
                 plt.title("Energy of solution for 1 loop/restart, with K = " + str(K) + ", for random ferromagnetic problem")
                 plt.savefig("K_" + str(K) + "_Energy_evolution_it_ferro.png", dpi = 500)
+elif args.schedule == "ITERATIVE_FRUSTRATED":
+    for file in os.scandir(IT_FRUSTRATED_DIR):
+        if file.is_file():
+            with open(file.path) as file:
+                data_dict = json.load(file)
+                K = data_dict['K']
+                L = data_dict['L']
+                energy = np.array(data_dict['energy'])
+                fig = plt.figure()
+                plt.plot([x for x in range(len(energy))], energy)
+                fig.set_size_inches((11,11), forward = False)
+                plt.xlabel("#iterations")
+                plt.ylabel("Energy")
+                plt.title("Energy of solution for 1 loop/restart, with K = " + str(K) + ", for random frustrated problem")
+                plt.savefig("K_" + str(K) + "_Energy_evolution_it_frustrated.png", dpi = 500)
 
         
         
