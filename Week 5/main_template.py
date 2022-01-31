@@ -62,8 +62,32 @@ def bp(n, m_ex, w, th, c, eps=10**-13):
     error_bp = np.sqrt(1/n*np.sum((m-m_ex)**2)) # final error
     # print(m)
 
-    return error_bp, iterations, m
-    
+    return error_bp, iterations, m, a
+
+def bij_func(i,j,xi,xj,w,th,a,c):
+    part1 = w[i][j]*xi*xj
+    part2 = th[i]*xi + th[j]*xj
+    part3 = np.sum([a[k][i]*xi*c[k][i] for k in range(n)]) - a[j][i]*xi*c[j][i]
+    part4 = np.sum([a[l][j]*xj*c[l][j] for l in range(n)]) - a[i][j]*xj*c[i][j]
+    return part1 + part2 + part3 + part4
+
+def b_ij(i,j,xi,xj,w,th,a,c,Z=0):
+    if Z==0:
+        for xi in [-1,1]:
+            for xj in [-1,1]:
+                Z += bij_func(i,j,xi,xj,w,th,a,c)
+        return Z
+    else:
+        return bij_func(i,j,xi,xj,w,th,a,c)/Z
+
+
+def X_ij(i,j,w,th,a,c,m):
+    total = -m[i]*m[j]
+    Z = b_ij(i,j,0,0,w,th,a,c)
+    for xi in [-1,1]:
+        for xj in [-1,1]:
+            total +=  b_ij(i,j,xi,xj,w,th,a,c,Z)*xi*xj
+    return total
 
 def main():
     np.random.seed(37) #TODO random over weights
@@ -128,7 +152,7 @@ def main():
 
             chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
             # print(w)
-            # print(m_mf, chi_mf, chi_ex)
+            # print(chi_mf, chi_ex)
             error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
             # print(np.sum(np.tril(chi_ex-chi_mf, -1)))
             # error_chi_mf = np.sqrt(1/(n**2)*np.sum(chi_ex-chi_mf)**2)
@@ -137,11 +161,15 @@ def main():
             # print("MF APPROX")
             # print(f"ERROR: {error_mf},\tITER: {iter_mf},\tCHI: {chi_mf}\n")
 
-            error_bp, iter_bp, m_bp = bp(n,m_ex,w,th, c)
-            # print(m_bp)
+            error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c)
+            chi_bp = np.empty(shape=(n,n))
+            for i in range(n):
+                for j in range(n):
+                    chi_bp[i][j] = X_ij(i,j,w,th,a,c,m_bp)
+            print(chi_bp)
             # print(3)
 
-            error_chi_bp = 0#np.dot(sa.T,klad)-np.dot(m_bp,m_bp.T) # exact connected correlations
+            error_chi_bp = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_bp - chi_ex, -1)**2)) # exact connected correlations
             # print("BP")
             # print(f"ERROR: {error_bp},\tITER: {iter_bp},\tCHI: {chi_bp}\n")
 
