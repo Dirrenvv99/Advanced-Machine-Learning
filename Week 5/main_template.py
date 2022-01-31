@@ -69,7 +69,7 @@ def bij_func(i,j,xi,xj,w,th,a,c):
     part2 = th[i]*xi + th[j]*xj
     part3 = np.sum([a[k][i]*xi*c[k][i] for k in range(n)]) - a[j][i]*xi*c[j][i]
     part4 = np.sum([a[l][j]*xj*c[l][j] for l in range(n)]) - a[i][j]*xj*c[i][j]
-    return part1 + part2 + part3 + part4
+    return np.exp(part1 + part2 + part3 + part4)
 
 def b_ij(i,j,xi,xj,w,th,a,c,Z=0):
     if Z==0:
@@ -78,15 +78,18 @@ def b_ij(i,j,xi,xj,w,th,a,c,Z=0):
                 Z += bij_func(i,j,xi,xj,w,th,a,c)
         return Z
     else:
+        # print(bij_func(i,j,xi,xj,w,th,a,c)/Z)
         return bij_func(i,j,xi,xj,w,th,a,c)/Z
 
 
 def X_ij(i,j,w,th,a,c,m):
     total = -m[i]*m[j]
     Z = b_ij(i,j,0,0,w,th,a,c)
+    # print('dit is Z', Z)
     for xi in [-1,1]:
         for xj in [-1,1]:
             total +=  b_ij(i,j,xi,xj,w,th,a,c,Z)*xi*xj
+            # print('dit is b_ij', b_ij(i,j,xi,xj,w,th,a,c,Z)*xi*xj)
     return total
 
 def main():
@@ -144,6 +147,7 @@ def main():
 
             klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
             chi_ex = np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
+            # print(chi_ex)
 
             # print(1)
             error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=0.5)
@@ -166,7 +170,7 @@ def main():
             for i in range(n):
                 for j in range(n):
                     chi_bp[i][j] = X_ij(i,j,w,th,a,c,m_bp)
-            print(chi_bp)
+            # print('dit is chi_bp ', chi_bp)
             # print(3)
 
             error_chi_bp = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_bp - chi_ex, -1)**2)) # exact connected correlations
