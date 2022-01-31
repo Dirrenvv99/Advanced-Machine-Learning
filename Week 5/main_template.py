@@ -5,7 +5,7 @@ import scipy.stats as stats
 import scipy.sparse as sparse
 from itertools import product
 
-n=20
+n=3
 # Jth=0.1
 full = True
 
@@ -20,16 +20,18 @@ def sprandsym(n, density):
 def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
     # Mean Field approximation
     m = np.random.normal(size=n) # random init
-
+    # m = np.array([0.325,0.325])
     dm = np.inf
     iterations = 0
     while(dm > eps):
+        # print(m)
         iterations += 1
         m_old = m
         m = smoothing * m + (1-smoothing) * np.tanh(np.dot(w,m) + th)
         dm = np.max(np.abs(m-m_old))
     
-    error_mf = np.sqrt(1/n*np.sum(m-m_ex)**2) # final error
+    error_mf = np.sqrt(1/n*np.sum((m-m_ex)**2)) # final error
+    # print(m)
 
     return error_mf, iterations, m
 
@@ -37,7 +39,6 @@ def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
 def bp(n, m_ex, w, th, c, eps=10**-13):
     # Belief Propagation
     a = np.random.normal(size=(n,n))             # random init
-
     da = 1
     iterations = 0
     while(da > eps and iterations < 1000):
@@ -46,9 +47,10 @@ def bp(n, m_ex, w, th, c, eps=10**-13):
 
         # print(th)
         # print(w)
-        m_pos = 2*np.cosh(w + th + np.sum(np.multiply(a,c), axis=0))
+        m_pos = 2*np.cosh(w + th + np.sum(np.multiply(a,c), axis=1) - np.multiply(a,c).T)
+        # print('m_pos is ', m_pos)
         # print(m_pos)
-        m_neg = 2*np.cosh(-w + th + np.sum(np.multiply(a,c), axis=0))
+        m_neg = 2*np.cosh(-w + th + np.sum(np.multiply(a,c), axis=1) - np.multiply(a,c).T)
         # print(m_neg)
 
         a = .5 * (np.log(m_pos) - np.log(m_neg))
@@ -56,8 +58,9 @@ def bp(n, m_ex, w, th, c, eps=10**-13):
         # exit()
         da = np.max(np.abs(a-a_old))
 
-    m = np.tanh(np.sum(a, axis=0) + th)
-    error_bp = np.sqrt(1/n*np.sum(m-m_ex)**2) # final error
+    m = np.tanh(np.sum(a, axis=1) + th)
+    error_bp = np.sqrt(1/n*np.sum((m-m_ex)**2)) # final error
+    # print(m)
 
     return error_bp, iterations, m
     
@@ -66,6 +69,7 @@ def main():
     np.random.seed(37) #TODO random over weights
 
     x = np.linspace(0, 2, num=10)
+    # x = [2]
     error_mean, error_std = [], []
     iter_mean, iter_std = [], []
     chi_mean, chi_std = [], []
@@ -73,7 +77,7 @@ def main():
     for Jth in tqdm(x):
         errors, iters, error_chis = [],[],[]
 
-        for _ in range(1):
+        for _ in range(2):
 
             # toggle between full and sparse Ising network
             if full:                    # full weight matrix
@@ -95,24 +99,36 @@ def main():
 
             # Jth=.1
             # np.random.seed(0)
+            # print(w)
             th = np.random.normal(size = n)*Jth
+            # th = [0.5,0.5]
+            # print(th)
 
             # EXACT
-            sa = np.array(list(product([-1,1], repeat = n)))        # all 2^n spin configurations
-            Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
+            sa = np.array(list(product([-1,1], repeat = n))) 
+            # print(sa)       # all 2^n spin configurations
+            Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th)
+            # print(Ea) # array of the energies of all 2^n configurations
             Ea = np.exp(Ea)
+            # print(Ea)
             Z = np.sum(Ea)
-            p_ex = Ea /Z             # probabilities of all 2^n configurations
+            # print(Z)
+            p_ex = Ea /Z   
+            # print(p_ex)          # probabilities of all 2^n configurations
             m_ex = np.dot(sa.T,p_ex) # exact mean values of n spins
+            # print(m_ex)
 
             klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
             chi_ex = np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
 
             # print(1)
-            error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=.5)
+            error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=0.5)
+            # print(m_mf)
             # print(2)
 
             chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
+            # print(w)
+            # print(m_mf, chi_mf, chi_ex)
             error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
             # print(np.sum(np.tril(chi_ex-chi_mf, -1)))
             # error_chi_mf = np.sqrt(1/(n**2)*np.sum(chi_ex-chi_mf)**2)
@@ -122,6 +138,7 @@ def main():
             # print(f"ERROR: {error_mf},\tITER: {iter_mf},\tCHI: {chi_mf}\n")
 
             error_bp, iter_bp, m_bp = bp(n,m_ex,w,th, c)
+            # print(m_bp)
             # print(3)
 
             error_chi_bp = 0#np.dot(sa.T,klad)-np.dot(m_bp,m_bp.T) # exact connected correlations
