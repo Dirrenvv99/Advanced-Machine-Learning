@@ -146,7 +146,7 @@ def main():
             # print(m_ex)
 
             klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
-            chi_ex = np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T) # exact connected correlations
+            chi_ex = np.dot(sa.T,klad)-np.outer(m_ex,m_ex.T) # exact connected correlations
             # print(chi_ex)
 
             # print(1)
