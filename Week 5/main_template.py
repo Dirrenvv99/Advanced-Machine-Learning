@@ -5,9 +5,9 @@ import scipy.stats as stats
 import scipy.sparse as sparse
 from itertools import product
 
-n=3
+n=20
 # Jth=0.1
-full = True
+full = False
 
 def sprandsym(n, density):
     rvs = stats.norm().rvs
@@ -36,7 +36,7 @@ def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
     return error_mf, iterations, m
 
 
-def bp(n, m_ex, w, th, c, eps=10**-13):
+def bp(n, m_ex, w, th, c, eps=10**-13, smoothing=0):
     # Belief Propagation
     a = np.random.normal(size=(n,n))             # random init
     da = 1
@@ -55,6 +55,7 @@ def bp(n, m_ex, w, th, c, eps=10**-13):
 
         a = .5 * (np.log(m_pos) - np.log(m_neg))
         # print(a)
+        a = smoothing*a_old + (1-smoothing)*a
         # exit()
         da = np.max(np.abs(a-a_old))
 
@@ -95,13 +96,13 @@ def X_ij(i,j,w,th,a,c,m):
 def main():
     np.random.seed(37) #TODO random over weights
 
-    x = np.linspace(0, 2, num=10)
+    x = np.linspace(0.1, 1, num=9)
     # x = [2]
     error_mean, error_std = [], []
     iter_mean, iter_std = [], []
     chi_mean, chi_std = [], []
 
-    for Jth in tqdm(x):
+    for c1 in tqdm(x):
         errors, iters, error_chis = [],[],[]
 
         for _ in range(2):
@@ -114,20 +115,23 @@ def main():
                 np.fill_diagonal(w,0)
                 w = np.tril(w)+np.tril(w).T
                 c = ~(w==0)             # neighborhood graph fully connected
+                th = np.random.normal(size = n)*Jth
 
             else:                       # sparse weight matrix
-                c1 = 0.5                # connectivity is the approximate fraction of non-zero links in the random graph on n spins
+                # c1 = 0.5                # connectivity is the approximate fraction of non-zero links in the random graph on n spins
                 k = c1*n
-                beta = 0.5
+                beta = 0.2
                 w = sprandsym(n,c1)     # symmetric weight matrix w with c1*n^2 non-zero elements
                 np.fill_diagonal(w,0)
                 c = ~(w==0)             # sparse 0,1 neighborhood graph
                 w = beta*((w>0).astype(int)-(w<0).astype(int)) # w is sparse with +/-beta on the links
+                th = np.full(n, 0.1)
+
 
             # Jth=.1
             # np.random.seed(0)
             # print(w)
-            th = np.random.normal(size = n)*Jth
+            
             # th = [0.5,0.5]
             # print(th)
 
@@ -165,7 +169,7 @@ def main():
             # print("MF APPROX")
             # print(f"ERROR: {error_mf},\tITER: {iter_mf},\tCHI: {chi_mf}\n")
 
-            error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c)
+            error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c, smoothing=0.5)
             chi_bp = np.empty(shape=(n,n))
             for i in range(n):
                 for j in range(n):
@@ -198,7 +202,6 @@ def main():
         bp_std = np.array([i[1] for i in std])
         plot.plot(x, bp_mean, label="bp")
         plot.fill_between(x, bp_mean-bp_std, bp_mean+bp_std, alpha=.5)
-
         plot.set_xlabel(r'$\beta$')
         plot.legend()
 
@@ -207,6 +210,7 @@ def main():
     axs[0].set_title('error')
     helper(axs[0], x, error_mean, error_std)
     axs[0].set_xlabel(r'$\beta$')
+    axs[0].set_yscale('log')
     axs[0].legend()
 
     axs[1].set_title('iterations')
