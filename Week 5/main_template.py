@@ -1,3 +1,4 @@
+from cProfile import label
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -6,8 +7,7 @@ import scipy.sparse as sparse
 from itertools import product
 
 n=20
-# Jth=0.1
-full = False
+full = True
 
 def sprandsym(n, density):
     rvs = stats.norm().rvs
@@ -19,19 +19,40 @@ def sprandsym(n, density):
 
 def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
     # Mean Field approximation
-    m = np.random.normal(size=n) # random init
-    # m = np.array([0.325,0.325])
-    dm = np.inf
-    iterations = 0
-    while(dm > eps):
-        # print(m)
-        iterations += 1
-        m_old = m
-        m = smoothing * m + (1-smoothing) * np.tanh(np.dot(w,m) + th)
-        dm = np.max(np.abs(m-m_old))
-    
+    m1 = np.random.normal(size=n) # random init
+    iters = []
+    for smoothing in np.linspace(0, 1, num=20):
+        m = m1
+        dm = np.inf
+        iterations = 0
+
+        while(dm > eps):
+            iterations += 1
+            if (iterations % 1000 == 0):
+                print("MF: ", iterations)
+            m_old = m
+            m = smoothing*m + (1-smoothing)*np.tanh(np.dot(w,m) + th)
+            dm = np.max(np.abs(m-m_old))
+        iters.append(iterations)
+
     error_mf = np.sqrt(1/n*np.sum((m-m_ex)**2)) # final error
-    # print(m)
+
+    # plt.figure()
+    # plt.ylabel('iterations')
+    # plt.xlabel(r'$\eta$')
+    # plt.plot(np.linspace(0, 1, num=20), iters)
+    # plt.show()
+    # exit()
+
+    # plt.figure()
+    # plt.ylabel('dm')
+    # plt.xlabel('iterations')
+    # plt.yscale('log')
+    # plt.plot(dms2, label="with smoothing")
+    # plt.plot(dms1, label="without smoothing")
+    # plt.legend()
+    # plt.show()
+    # exit()
 
     return error_mf, iterations, m
 
@@ -41,27 +62,38 @@ def bp(n, m_ex, w, th, c, eps=10**-13, smoothing=0):
     a = np.random.normal(size=(n,n))             # random init
     da = 1
     iterations = 0
-    while(da > eps and iterations < 1000):
+    while(da > eps and iterations < 1500):
         iterations += 1
+        if (iterations % 1000 == 0):
+            print("BP: ", iterations)
         a_old = a
 
-        # print(th)
-        # print(w)
         m_pos = 2*np.cosh(w + th + np.sum(np.multiply(a,c), axis=1) - np.multiply(a,c).T)
-        # print('m_pos is ', m_pos)
-        # print(m_pos)
         m_neg = 2*np.cosh(-w + th + np.sum(np.multiply(a,c), axis=1) - np.multiply(a,c).T)
-        # print(m_neg)
 
         a = .5 * (np.log(m_pos) - np.log(m_neg))
-        # print(a)
         a = smoothing*a_old + (1-smoothing)*a
-        # exit()
         da = np.max(np.abs(a-a_old))
 
     m = np.tanh(np.sum(a, axis=1) + th)
     error_bp = np.sqrt(1/n*np.sum((m-m_ex)**2)) # final error
-    # print(m)
+
+    # plt.figure()
+    # plt.ylabel('iterations')
+    # plt.xlabel(r'$\eta$')
+    # plt.plot(np.linspace(0, 1, num=20), iters)
+    # plt.show()
+    # exit()
+
+    # plt.figure()
+    # plt.ylabel('da')
+    # plt.xlabel('iterations')
+    # plt.yscale('log')
+    # plt.plot(das2, label="with smoothing")
+    # plt.plot(das1, label="without smoothing")
+    # plt.legend()
+    # plt.show()
+    # exit()
 
     return error_bp, iterations, m, a
 
@@ -79,38 +111,34 @@ def b_ij(i,j,xi,xj,w,th,a,c,Z=0):
                 Z += bij_func(i,j,xi,xj,w,th,a,c)
         return Z
     else:
-        # print(bij_func(i,j,xi,xj,w,th,a,c)/Z)
         return bij_func(i,j,xi,xj,w,th,a,c)/Z
 
 
 def X_ij(i,j,w,th,a,c,m):
     total = -m[i]*m[j]
     Z = b_ij(i,j,0,0,w,th,a,c)
-    # print('dit is Z', Z)
     for xi in [-1,1]:
         for xj in [-1,1]:
             total +=  b_ij(i,j,xi,xj,w,th,a,c,Z)*xi*xj
-            # print('dit is b_ij', b_ij(i,j,xi,xj,w,th,a,c,Z)*xi*xj)
     return total
 
 def main():
-    np.random.seed(37) #TODO random over weights
+    np.random.seed(37)
 
-    x = np.linspace(0.1, 1, num=9)
-    # x = [2]
+    x = [.1]#np.linspace(0.1, 2, num=20)
     error_mean, error_std = [], []
     iter_mean, iter_std = [], []
     chi_mean, chi_std = [], []
 
-    for c1 in tqdm(x):
+    for Jth in tqdm(x):
         errors, iters, error_chis = [],[],[]
 
-        for _ in range(2):
+        for _ in tqdm(range(10)):
 
             # toggle between full and sparse Ising network
             if full:                    # full weight matrix
                 J0 = 0                  # J0 and J are as defined for the SK model
-                J = 0.5
+                J = .5#Jth                 # previously 0.5
                 w = J0/n+J/np.sqrt(n)*np.random.normal(size = (n,n))
                 np.fill_diagonal(w,0)
                 w = np.tril(w)+np.tril(w).T
@@ -118,7 +146,7 @@ def main():
                 th = np.random.normal(size = n)*Jth
 
             else:                       # sparse weight matrix
-                # c1 = 0.5                # connectivity is the approximate fraction of non-zero links in the random graph on n spins
+                c1 = 0.5                # connectivity is the approximate fraction of non-zero links in the random graph on n spins
                 k = c1*n
                 beta = 0.2
                 w = sprandsym(n,c1)     # symmetric weight matrix w with c1*n^2 non-zero elements
@@ -128,58 +156,29 @@ def main():
                 th = np.full(n, 0.1)
 
 
-            # Jth=.1
-            # np.random.seed(0)
-            # print(w)
-            
-            # th = [0.5,0.5]
-            # print(th)
-
             # EXACT
-            sa = np.array(list(product([-1,1], repeat = n))) 
-            # print(sa)       # all 2^n spin configurations
-            Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th)
-            # print(Ea) # array of the energies of all 2^n configurations
+            sa = np.array(list(product([-1,1], repeat = n)))        # all 2^n spin configurations
+            Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
             Ea = np.exp(Ea)
-            # print(Ea)
             Z = np.sum(Ea)
-            # print(Z)
-            p_ex = Ea /Z   
-            # print(p_ex)          # probabilities of all 2^n configurations
+            p_ex = Ea /Z             # probabilities of all 2^n configurations
             m_ex = np.dot(sa.T,p_ex) # exact mean values of n spins
-            # print(m_ex)
 
             klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
             chi_ex = np.dot(sa.T,klad)-np.outer(m_ex,m_ex.T) # exact connected correlations
-            # print(chi_ex)
 
-            # print(1)
             error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=0.5)
-            # print(m_mf)
-            # print(2)
 
             chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
-            # print(w)
-            # print(chi_mf, chi_ex)
             error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
-            # print(np.sum(np.tril(chi_ex-chi_mf, -1)))
-            # error_chi_mf = np.sqrt(1/(n**2)*np.sum(chi_ex-chi_mf)**2)
-            # print(error_chi_mf)
-            # print() # np.sqrt(np.mean(np.square(np.dot(sa.T,klad)-np.dot(m_ex,m_ex.T))))
-            # print("MF APPROX")
-            # print(f"ERROR: {error_mf},\tITER: {iter_mf},\tCHI: {chi_mf}\n")
 
             error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c, smoothing=0.5)
             chi_bp = np.empty(shape=(n,n))
             for i in range(n):
                 for j in range(n):
                     chi_bp[i][j] = X_ij(i,j,w,th,a,c,m_bp)
-            # print('dit is chi_bp ', chi_bp)
-            # print(3)
 
             error_chi_bp = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_bp - chi_ex, -1)**2)) # exact connected correlations
-            # print("BP")
-            # print(f"ERROR: {error_bp},\tITER: {iter_bp},\tCHI: {chi_bp}\n")
 
             errors.append([error_mf, error_bp])
             iters.append([iter_mf, iter_bp])
@@ -210,7 +209,7 @@ def main():
     axs[0].set_title('error')
     helper(axs[0], x, error_mean, error_std)
     axs[0].set_xlabel(r'$\beta$')
-    axs[0].set_yscale('log')
+    # axs[0].set_yscale('log')
     axs[0].legend()
 
     axs[1].set_title('iterations')
