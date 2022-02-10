@@ -167,11 +167,13 @@ def main():
                 klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
                 chi_ex = np.dot(sa.T,klad)-np.outer(m_ex,m_ex.T) # exact connected correlations
 
+                # MF approx
                 error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=0.5)
 
                 chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
                 error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
 
+                # BP approx
                 error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c, smoothing=0.5)
                 chi_bp = np.empty(shape=(n,n))
                 for i in range(n):
@@ -191,6 +193,9 @@ def main():
             chi_mean.append(np.mean(error_chis, axis=0))
             chi_std.append(np.std(error_chis, axis=0))
 
+
+        # Plotting
+        
         def helper(plot, x, mean, std, label=""):
             mf_mean = np.array([i[0] for i in mean])
             mf_std = np.array([i[0] for i in std])
