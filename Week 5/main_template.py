@@ -7,7 +7,7 @@ import scipy.sparse as sparse
 from itertools import product
 
 n=20
-full = True
+full = False
 
 def sprandsym(n, density):
     rvs = stats.norm().rvs
@@ -121,102 +121,107 @@ def X_ij(i,j,w,th,a,c,m):
 def main():
     np.random.seed(37)
 
-    x = np.linspace(0.1, 2, num=20)
-    error_mean, error_std = [], []
-    iter_mean, iter_std = [], []
-    chi_mean, chi_std = [], []
+    x = np.linspace(0.1, 1, num=9)
+    _, axs = plt.subplots(1,3) if full else plt.subplots(1,2)
 
-    for Jth in tqdm(x):
-        errors, iters, error_chis = [],[],[]
+    # for Jth in tqdm(x):
+    Jth = .1
+    for c1 in [0.1, 0.6, 1]:
+        error_mean, error_std = [], []
+        iter_mean, iter_std = [], []
+        chi_mean, chi_std = [], []
+        for beta in tqdm(x):
+            errors, iters, error_chis = [],[],[]
 
-        for _ in tqdm(range(10)):
+            for _ in tqdm(range(6)):
 
-            # toggle between full and sparse Ising network
-            if full:                    # full weight matrix
-                J0 = 0                  # J0 and J are as defined for the SK model
-                J = Jth                 # previously 0.5
-                w = J0/n+J/np.sqrt(n)*np.random.normal(size = (n,n))
-                np.fill_diagonal(w,0)
-                w = np.tril(w)+np.tril(w).T
-                c = ~(w==0)             # neighborhood graph fully connected
-                th = np.random.normal(size = n)*Jth
+                # toggle between full and sparse Ising network
+                if full:                    # full weight matrix
+                    J0 = 0                  # J0 and J are as defined for the SK model
+                    J = Jth                 # previously 0.5
+                    w = J0/n+J/np.sqrt(n)*np.random.normal(size = (n,n))
+                    np.fill_diagonal(w,0)
+                    w = np.tril(w)+np.tril(w).T
+                    c = ~(w==0)             # neighborhood graph fully connected
+                    th = np.random.normal(size = n)*Jth
 
-            else:                       # sparse weight matrix
-                c1 = 0.5                # connectivity is the approximate fraction of non-zero links in the random graph on n spins
-                k = c1*n
-                beta = 0.2
-                w = sprandsym(n,c1)     # symmetric weight matrix w with c1*n^2 non-zero elements
-                np.fill_diagonal(w,0)
-                c = ~(w==0)             # sparse 0,1 neighborhood graph
-                w = beta*((w>0).astype(int)-(w<0).astype(int)) # w is sparse with +/-beta on the links
-                th = np.full(n, 0.1)
+                else:                       # sparse weight matrix
+                    # c1 = 0.5                # connectivity is the approximate fraction of non-zero links in the random graph on n spins
+                    k = c1*n
+                    # beta = 0.2
+                    w = sprandsym(n,c1)     # symmetric weight matrix w with c1*n^2 non-zero elements
+                    np.fill_diagonal(w,0)
+                    c = ~(w==0)             # sparse 0,1 neighborhood graph
+                    w = beta*((w>0).astype(int)-(w<0).astype(int)) # w is sparse with +/-beta on the links
+                    th = np.full(n, 1)
 
 
-            # EXACT
-            sa = np.array(list(product([-1,1], repeat = n)))        # all 2^n spin configurations
-            Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
-            Ea = np.exp(Ea)
-            Z = np.sum(Ea)
-            p_ex = Ea /Z             # probabilities of all 2^n configurations
-            m_ex = np.dot(sa.T,p_ex) # exact mean values of n spins
+                # EXACT
+                sa = np.array(list(product([-1,1], repeat = n)))        # all 2^n spin configurations
+                Ea = 0.5*np.sum(np.dot(sa,w)*sa,axis=1) + np.dot(sa,th) # array of the energies of all 2^n configurations
+                Ea = np.exp(Ea)
+                Z = np.sum(Ea)
+                p_ex = Ea /Z             # probabilities of all 2^n configurations
+                m_ex = np.dot(sa.T,p_ex) # exact mean values of n spins
 
-            klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
-            chi_ex = np.dot(sa.T,klad)-np.outer(m_ex,m_ex.T) # exact connected correlations
+                klad = np.outer(p_ex,np.ones(shape=(1,n)))*sa
+                chi_ex = np.dot(sa.T,klad)-np.outer(m_ex,m_ex.T) # exact connected correlations
 
-            error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=0.5)
+                error_mf, iter_mf, m_mf = mf_approx(n,m_ex,w,th, smoothing=0.5)
 
-            chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
-            error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
+                chi_mf = np.linalg.inv(np.eye(n)/(1-m_mf**2)-w)
+                error_chi_mf = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_mf - chi_ex, -1)**2))
 
-            error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c, smoothing=0.5)
-            chi_bp = np.empty(shape=(n,n))
-            for i in range(n):
-                for j in range(n):
-                    chi_bp[i][j] = X_ij(i,j,w,th,a,c,m_bp)
+                error_bp, iter_bp, m_bp, a= bp(n,m_ex,w,th, c, smoothing=0.5)
+                chi_bp = np.empty(shape=(n,n))
+                for i in range(n):
+                    for j in range(n):
+                        chi_bp[i][j] = X_ij(i,j,w,th,a,c,m_bp)
 
-            error_chi_bp = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_bp - chi_ex, -1)**2)) # exact connected correlations
+                error_chi_bp = np.sqrt(2/(n*(n-1))*np.sum(np.tril(chi_bp - chi_ex, -1)**2)) # exact connected correlations
 
-            errors.append([error_mf, error_bp])
-            iters.append([iter_mf, iter_bp])
-            error_chis.append([error_chi_mf, error_chi_bp])
+                errors.append([error_mf, error_bp])
+                iters.append([iter_mf, iter_bp])
+                error_chis.append([error_chi_mf, error_chi_bp])
 
-        error_mean.append(np.mean(errors, axis=0))
-        error_std.append(np.std(errors, axis=0))
-        iter_mean.append(np.mean(iters, axis=0))
-        iter_std.append(np.std(iters, axis=0))
-        chi_mean.append(np.mean(error_chis, axis=0))
-        chi_std.append(np.std(error_chis, axis=0))
+            error_mean.append(np.mean(errors, axis=0))
+            error_std.append(np.std(errors, axis=0))
+            iter_mean.append(np.mean(iters, axis=0))
+            iter_std.append(np.std(iters, axis=0))
+            chi_mean.append(np.mean(error_chis, axis=0))
+            chi_std.append(np.std(error_chis, axis=0))
 
-    def helper(plot, x, mean, std):
-        mf_mean = np.array([i[0] for i in mean])
-        mf_std = np.array([i[0] for i in std])
-        plot.plot(x, mf_mean, label="mf")
-        plot.fill_between(x, mf_mean-mf_std, mf_mean+mf_std, alpha=.5)
+        def helper(plot, x, mean, std, label=""):
+            mf_mean = np.array([i[0] for i in mean])
+            mf_std = np.array([i[0] for i in std])
+            plot.plot(x, mf_mean, label="mf"+label)
+            plot.fill_between(x, mf_mean-mf_std, mf_mean+mf_std, alpha=.3)
 
-        bp_mean = np.array([i[1] for i in mean])
-        bp_std = np.array([i[1] for i in std])
-        plot.plot(x, bp_mean, label="bp")
-        plot.fill_between(x, bp_mean-bp_std, bp_mean+bp_std, alpha=.5)
-        plot.set_xlabel(r'$\beta$')
-        plot.legend()
+            bp_mean = np.array([i[1] for i in mean])
+            bp_std = np.array([i[1] for i in std])
+            plot.plot(x, bp_mean, label="bp"+label)
+            plot.fill_between(x, bp_mean-bp_std, bp_mean+bp_std, alpha=.3)
 
-    _, axs = plt.subplots(1,3)
+        helper(axs[0], x, error_mean, error_std, f" c={c1}")
+        helper(axs[1], x, iter_mean, iter_std, f" c={c1}")
+        if full:
+            helper(axs[2], x, chi_mean, chi_std)
 
+    var = r'$\beta$'
     axs[0].set_title('error')
-    helper(axs[0], x, error_mean, error_std)
-    axs[0].set_xlabel(r'$\beta$')
-    # axs[0].set_yscale('log')
+    axs[0].set_xlabel(var)
+    if not full:
+        axs[0].set_yscale('log')
     axs[0].legend()
-
     axs[1].set_title('iterations')
-    helper(axs[1], x, iter_mean, iter_std)
-    axs[1].set_xlabel(r'$\beta$')
+    axs[1].set_xlabel(var)
+    if not full:
+        axs[1].set_ylim(0, 2000)
     axs[1].legend()
-
-    axs[2].set_title('error chi')
-    helper(axs[2], x, chi_mean, chi_std)
-    axs[2].set_xlabel(r'$\beta$')
-    axs[2].legend()
+    if full:
+        axs[2].set_title('error chi')
+        axs[2].set_xlabel(var)
+        axs[2].legend()
 
     plt.show()
 
