@@ -17,23 +17,19 @@ def sprandsym(n, density):
     return result.toarray()
 
 
-def mf_approx(n, m_ex, w, th, smoothing=.7, eps=10**-13):
+def mf_approx(n, m_ex, w, th, smoothing=0, eps=10**-13):
     # Mean Field approximation
-    m1 = np.random.normal(size=n) # random init
-    iters = []
-    for smoothing in np.linspace(0, 1, num=20):
-        m = m1
-        dm = np.inf
-        iterations = 0
-
-        while(dm > eps):
-            iterations += 1
-            if (iterations % 1000 == 0):
-                print("MF: ", iterations)
-            m_old = m
-            m = smoothing*m + (1-smoothing)*np.tanh(np.dot(w,m) + th)
-            dm = np.max(np.abs(m-m_old))
-        iters.append(iterations)
+    m = np.random.normal(size=n) # random init
+    
+    dm = np.inf
+    iterations = 0
+    while(dm > eps):
+        iterations += 1
+        if (iterations % 1000 == 0):
+            print("MF: ", iterations)
+        m_old = m
+        m = smoothing*m + (1-smoothing)*np.tanh(np.dot(w,m) + th)
+        dm = np.max(np.abs(m-m_old))
 
     error_mf = np.sqrt(1/n*np.sum((m-m_ex)**2)) # final error
 
@@ -125,7 +121,7 @@ def X_ij(i,j,w,th,a,c,m):
 def main():
     np.random.seed(37)
 
-    x = [.1]#np.linspace(0.1, 2, num=20)
+    x = np.linspace(0.1, 2, num=20)
     error_mean, error_std = [], []
     iter_mean, iter_std = [], []
     chi_mean, chi_std = [], []
@@ -138,7 +134,7 @@ def main():
             # toggle between full and sparse Ising network
             if full:                    # full weight matrix
                 J0 = 0                  # J0 and J are as defined for the SK model
-                J = .5#Jth                 # previously 0.5
+                J = Jth                 # previously 0.5
                 w = J0/n+J/np.sqrt(n)*np.random.normal(size = (n,n))
                 np.fill_diagonal(w,0)
                 w = np.tril(w)+np.tril(w).T
