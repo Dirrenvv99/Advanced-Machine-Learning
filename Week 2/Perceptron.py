@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 t = np.loadtxt("t.txt")
 x = np.loadtxt("x.txt")
-alpha = 0.01
+alpha = 0.01 #chosen from MacKay
 
 
 def y(w):

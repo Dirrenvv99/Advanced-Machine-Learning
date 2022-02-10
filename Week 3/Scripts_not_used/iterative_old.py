@@ -58,9 +58,8 @@ def iterative_method(K, L):
     return  results, energies, min_sol, min_energy
 
 def main():
-    ks = np.array([20,100])
-    # ks = np.array([20,100,200,500,1000,2000,4000]) #Change this to other values for a.) to see when K becomes big enough for reliable results.
-    #watch that the K = 4000 might take more than 60 minutes of running (at least on Dirren's cpu)
+    # ks = np.array([20,100])
+    ks = np.array([20,100,200,500,1000,2000,4000]) #Change this to other values for a.) to see when K becomes big enough for reliable results.
     L = 5000 #'normal' value that closely matched results found within excercise.
     N_runs = 20
     table = []

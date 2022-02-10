@@ -42,7 +42,7 @@ def grad_G(w):
     return -1*result 
 
 def grad_E(w):
-    return w #Dit klopt wel gewoon, want als je afleid naar w_i krijg je w_i terug. Dus in zn geheel volgt w
+    return w 
 
 def grad_M(w):
     return grad_G(w) + alpha * grad_E(w)
@@ -77,12 +77,11 @@ def HMC(tau, eps, iters = 100):
 def main():
     np.random.seed(42)
     eps = np.sqrt(0.01)
-    tau = round(1/eps) #Deze waarde kies ik omdat ik van het vak monte carlo van natuurkunde weet dat eps*tau ongeveer 1 moet zijn.
+    tau = round(1/eps) #Limiting the product of eps and tau to be one
     print(tau)
     iters = 40000
 
     w_values, rejections = HMC(tau, eps, iters)
-    #Deze is wel vrij slecht, maar we gebruiken de waardes die het boek ook aangeeft. Dus ik voorzie hier geen probleem mee (Zou eigenlijk wel minstens 0.4 moeten zijn ofzo)
     print(rejections/iters)
     w_samples_indices =  np.arange(10000, len(w_values), 1000)
     y_samples = [y(w_values[i]) for i in w_samples_indices]
@@ -90,7 +89,7 @@ def main():
     mean = np.mean([M(w) for w in w_values])
     print('mean:', mean)
     print(next(w[0] for w in enumerate(w_values) if M(w[1]) < mean))
-    #Waardes lijken met deze alpha ook te kloppen.
+    #this samples a few of the solutions, and checks the mean of the samples
     print('y mean = ', y_mean)
 
     fig, axs = plt.subplots(4)

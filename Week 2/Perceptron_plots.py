@@ -1,3 +1,6 @@
+'''Creates the plots used within the report'''
+
+
 import numpy as np
 sigmas = [0.001, 0.01, 0.1, 1] #numbers derived from perceptrion.py. They can be recreated by filling in the appropriate hyperparameters.
 rejections = [0.08, 0.20, 0.52, 0.84]

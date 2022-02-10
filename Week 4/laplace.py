@@ -51,10 +51,6 @@ def M(w, alpha):
 def grad_G(w):
     result = np.array([.0,.0,.0])
     y_list = sigmoid(f(w))
-    # y_list_prime = (1-y_list)
-    # t_prime = (1-t)
-
-    # result += np.dot(t,y_list_prime) * x 
     for i in range(len(y_list)):
         result -= t[i] * (1 - y_list[i]) * x[i] - (1-t[i]) * y_list[i] * x[i]
     return result 
@@ -65,12 +61,7 @@ def grad_E(w):
 
 
 def grad_M(w, alpha):
-    # epsilon = 10**-5
     return grad_G(w) + alpha * grad_E(w)
-    # return np.array([
-    #     (M(w, alpha)+M(w+epsilon*np.array([1,0,0]), alpha))/epsilon,
-    #     (M(w, alpha)+M(w+epsilon*np.array([0,1,0]), alpha))/epsilon,
-    #     (M(w, alpha)+M(w+epsilon*np.array([0,0,1]), alpha))/epsilon])
 
 
 def hessian(w, alpha):
@@ -98,8 +89,6 @@ def gradient_descent(w, alpha, learning_rate, iterations, grad_min):
     else:
         grad = np.ones_like(w) * np.inf
         while not (np.abs(grad) < grad_min).all():
-            # print(np.abs(grad)[0])
-            # print((np.abs(grad)[0] < grad_min))
             grad = grad_M(w, alpha)
             if (grad != grad).any() or (grad == np.inf).any():
                 break
@@ -169,6 +158,7 @@ def main():
     plt.legend()
 
     #Plots that show that the GD uses the same "trace" in order to reach similar w_star as in book:
+    #All below thus generates plots that were used more for our understanding/convincing. And were not asked as part of the assignment 
         
     _, axs = plt.subplots(1,2)
 
@@ -179,15 +169,10 @@ def main():
     axs[0].legend()
 
     axs[1].set_title('weights')
-    # TODO plot most recent hessian as vairance
     axs[1].plot([w[1] for w in w_values], [w[2] for w in w_values])
     axs[1].scatter([w[1] for w in w_values], [w[2] for w in w_values])
     axs[1].set_xlabel('w1')
     axs[1].set_ylabel('w2')
-
-    # axs[2].set_title('accuracy')
-    # axs[2].plot(scores)
-    # axs[2].set_ylim([0, 1])
     
 
     # fig.tight_layout(pad = 1.5)
