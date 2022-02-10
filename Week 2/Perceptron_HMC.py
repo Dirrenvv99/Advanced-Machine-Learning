@@ -75,7 +75,8 @@ def HMC(tau, eps, iters = 100):
     return w_values, rejections
 
 def main():
-    eps = np.sqrt(0.02)
+    np.random.seed(42)
+    eps = np.sqrt(0.01)
     tau = round(1/eps) #Deze waarde kies ik omdat ik van het vak monte carlo van natuurkunde weet dat eps*tau ongeveer 1 moet zijn.
     print(tau)
     iters = 40000
@@ -86,25 +87,40 @@ def main():
     w_samples_indices =  np.arange(10000, len(w_values), 1000)
     y_samples = [y(w_values[i]) for i in w_samples_indices]
     y_mean = np.mean(y_samples, axis = 0)
+    mean = np.mean([M(w) for w in w_values])
+    print('mean:', mean)
+    print(next(w[0] for w in enumerate(w_values) if M(w[1]) < mean))
     #Waardes lijken met deze alpha ook te kloppen.
-    print(y_mean)
+    print('y mean = ', y_mean)
 
     fig, axs = plt.subplots(4)
 
     axs[0].plot([i for i in range(iters)], [w[0] for w in w_values], label = "w0")
     axs[0].plot([i for i in range(iters)], [w[1] for w in w_values], label = "w1")
     axs[0].plot([i for i in range(iters)], [w[2] for w in w_values], label = "w2")
+    axs[0].set_ylabel('Weight value')
+    axs[0].set_xlabel('Number of iterations')
+    axs[0].set_title('weight values over time')
     axs[0].legend()
 
     axs[1].scatter([w[2] for w in w_values], [w[1] for w in w_values])
     axs[1].set_ylim([-3,5])
     axs[1].set_xlim([-1,7])
+    axs[1].set_xlabel('w2 value')
+    axs[1].set_ylabel('w1 value')
+    axs[1].set_title('w1 vs w2')
 
     axs[2].plot([i for i in range(iters)], [G(w) for w in w_values])
     axs[2].set_ylim([0,14])
+    axs[2].set_xlabel('Number of iterations')
+    axs[2].set_ylabel('G(W)')
+    axs[2].set_title('G(w) over time')
 
     axs[3].plot([i for i in range(iters)], [M(w) for w in w_values])
     axs[3].set_ylim([0,14])
+    axs[3].set_xlabel('Number of iterations')
+    axs[3].set_ylabel('M(W)')
+    axs[3].set_title('M(w) over time')
 
     fig.tight_layout(pad = 1.5)
     plt.show()
