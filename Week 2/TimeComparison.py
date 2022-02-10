@@ -1,3 +1,5 @@
+'''Compares time used between the two methods'''
+
 from HMC import HMC
 from MCMC import MH
 import timeit

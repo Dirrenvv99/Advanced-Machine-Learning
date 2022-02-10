@@ -1,3 +1,5 @@
+'''Performs the data analysis for the report based on the JSON files created by the other codes'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from tabulate import tabulate
