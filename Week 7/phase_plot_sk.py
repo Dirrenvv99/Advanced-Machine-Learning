@@ -35,8 +35,7 @@ def fixed_point_iteration():
 
     for index_x, x in enumerate(tqdm(xs)):
         for index_y, y in enumerate(ys):
-            #Deze beginwaarden zijn belangrijk voor het resultaat (geen idee waarom). Deze waarde geven de goede plotjes. Verslag is toch niet
-            #benodigd. Waarschijnlijk omdat deze waarde in het "midden" beginnen.
+            #choosing a few nice starting values, that seem to work well with the integrator
             q_old = 0.5
             m_old = 0.5
             q_new = np.inf
@@ -47,7 +46,7 @@ def fixed_point_iteration():
             diff_m = np.inf        
 
             while diff_q > epsilon and diff_m > epsilon:
-                #Gekozen voor het gebruik van quad en niet quadrature omdat quad de mogelijkheid geeft tot oneindige integratiegrenzen
+                #The choice for quad was made since this technique gives the possibility of infinty at the integration boundaries.
                 q_new = 1 - 1/np.sqrt(2*np.pi) * integrate.quad(q_func, -np.inf, np.inf, args = (x,y,m_old,q_old))[0]
                 m_new = 1/np.sqrt(2*np.pi) * integrate.quad(m_func, -np.inf, np.inf, args = (x,y,m_old,q_old))[0]
 
@@ -56,7 +55,7 @@ def fixed_point_iteration():
 
                 q_old = q_new
                 m_old = m_new
-            #Deze rare "invul manier" is zodat de assen hetzelfde lopen als in de opgave wanneer je imshow gebruikt
+            #This ensures the axis to be as wanted.
             qs[len(ys) - 1 - index_y][index_x] = q_new
             ms[len(ys) - 1 - index_y][index_x]= m_new
 
@@ -95,13 +94,7 @@ def main():
             'qs': qs,
             'ms': ms
             }, f, cls = NumpyEncoder)
-    
-
-
-#Comment over de plotjes: De rare strepen in de plotjes zijn een gevolg van quad, wat subclusters gebruikt die adaptief zijn.
-#Waarschijnlijk worden de clusters naar waardeverschil slim gekozen. Daarom lopen deze "lijnen" precies over de overgang waardes
-#En gedragen zich daar dus net wat anders dan de rest wat die lijnen oplevert!
-#Dit is opgelost door de epsilon wat strenger te maken. Ze zijn nu weg met een runtime van 3 minuten, dus helemaal top!
+        
 if __name__ == '__main__':
     main()
     
