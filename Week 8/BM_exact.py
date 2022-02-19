@@ -2,10 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 
-from sympy import li
-
-
-
 parser = argparse.ArgumentParser(description= 'Toy model BM')
 parser.add_argument('-N',type= int, default= 20, help='Size of the dataset')
 parser.add_argument('-S',type = int, default = 20, help = "Amount of spins" )
@@ -29,7 +25,7 @@ def likelihood(data,w,theta):
     nom = 0 
     Z = np.sum([unnormalized_p(point,w,theta) for point in data])
     for s in data:
-        nom += 0.5*(np.dot(s,np.dot(w,s)) + np.dot(theta, s))
+        nom += 0.5*(np.dot(s,np.dot(w,s))) + np.dot(theta, s)
     return nom/len(data) - np.log(Z)
 
 def clamped_statistics(data):
@@ -75,7 +71,10 @@ def main():
         #     print("double: ", (double_clamped - double_free))
         #     print("single: ", (single_clamped - single_free))
         if i % 100 == 0:
+            print("double: ",np.mean(np.abs(double_clamped - double_free)))
+            print("single: ",np.mean(np.abs(single_clamped - single_free)))
             print(i)
+
 
     plt.plot([x for x in range(len(likelihood_chain))], likelihood_chain)
     plt.xlabel("iterations")
