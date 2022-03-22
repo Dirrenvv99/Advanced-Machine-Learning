@@ -50,7 +50,8 @@ def main():
     # for index, point in enumerate(data):
     #     point[point==0] = -1
     #     data[index] = point
-    if data.shape != (args.N, 953):
+    data = data.transpose()
+    if data.shape != (953, 10):
         print("Data preprocessing went wrong")
         print("Data shape: ", data.shape)
     else:
@@ -59,12 +60,14 @@ def main():
         w = np.random.randn(data.shape[1], data.shape[1])
         np.fill_diagonal(w,0.) 
         theta = np.random.randn(data.shape[1])
+        print(w)
 
         condition = True
         likelihood_chain = [likelihood(data,w,theta)]
         i = 0
+        single_clamped, double_clamped = clamped_statistics(data)
+        print(double_clamped)
         while condition:
-            single_clamped, double_clamped = clamped_statistics(data)
             single_free, double_free = free_statistics(data,w,theta)
             w += lr * (double_clamped - double_free)
             theta += lr * (single_clamped - single_free)
@@ -99,9 +102,9 @@ def main():
         axs[1].set_title("local fields")
 
         fig.colorbar(im_theta, cax=cax_theta, orientation='vertical')
-
-        plt.show()
         plt.savefig(".\PLOTS\BM_EXACT_10_RANDOM_NEEEDED_PLOTS.png")
+        plt.show()
+
 
 if __name__ == '__main__':
     main()
