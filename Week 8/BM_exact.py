@@ -17,6 +17,7 @@ threshold = args.threshold
 def unnormalized_p(all_states, w,theta):
     return np.array([np.exp(0.5*np.dot(s, np.dot(w,s)) + np.dot(theta, s)) for s in all_states])
 
+
 def p_s_w(all_states, w, theta):
     # for the exact model needs to be calculated exactly, thus including the normalization constant. 
     res = unnormalized_p(all_states,w,theta)
@@ -82,13 +83,9 @@ def BM_exact(data, NrofSpins, NrofData):
     return w, theta, likelihood_chain, gradient_chain
 
 
-
 if __name__ == '__main__':
-    #Create toy model dataset
+    # Create toy model dataset
     data = np.array([np.random.randint(0, 2, size = args.S) for _ in range(args.N)])
-    # for index, point in enumerate(data):
-    #     point[point==0] = -1
-    #     data[index] = point
     w, theta, likelihood_chain, gradient_chain = BM_exact(data, args.S, args.N)
 
     plt.plot([x for x in range(len(likelihood_chain))], likelihood_chain)
