@@ -24,7 +24,7 @@ def p_s_w(all_states, w, theta):
     return 1/np.sum(res) * res
 
 
-def likelihood(w,theta, all_states):
+def likelihood(w,theta, all_states, data):
     Z = np.sum(unnormalized_p(all_states,w,theta))
     nom = [0.5*np.dot(s,np.dot(w,s)) + np.dot(theta, s) for s in data] 
     return np.mean(nom, axis=0) - np.log(Z)
@@ -44,7 +44,7 @@ def free_statistics(w, theta, all_states, all_states_outer):
     return single, double
 
 
-def BM_exact(data, NrofSpins, NrofData):
+def BM_exact(data, NrofSpins, NrofData, lr, threshold):
     #initialize w and theta randomly
     w = np.random.randn(NrofSpins, NrofSpins)
     np.fill_diagonal(w,0.) 
@@ -54,7 +54,7 @@ def BM_exact(data, NrofSpins, NrofData):
     all_states = [np.array(s) for s in all_states]
     all_states_outer = [np.outer(s,s) for s in all_states]
 
-    likelihood_chain = [likelihood(w, theta, all_states)]
+    likelihood_chain = [likelihood(w, theta, all_states, data)]
     gradient_chain = []
     i = 0
     single_clamped, double_clamped = clamped_statistics(data)
@@ -67,7 +67,7 @@ def BM_exact(data, NrofSpins, NrofData):
         gradient_single = single_clamped - single_free
         theta += lr * gradient_single
 
-        likelihood_chain.append(likelihood(w,theta, all_states))
+        likelihood_chain.append(likelihood(w,theta, all_states, data))
         gradient_chain.append((np.mean(gradient_single), np.mean(gradient_double)))
 
         if np.allclose(double_clamped, double_free, rtol=0, atol = threshold * 1/lr) and \
@@ -86,7 +86,7 @@ def BM_exact(data, NrofSpins, NrofData):
 if __name__ == '__main__':
     # Create toy model dataset
     data = np.array([np.random.randint(0, 2, size = args.S) for _ in range(args.N)])
-    w, theta, likelihood_chain, gradient_chain = BM_exact(data, args.S, args.N)
+    w, theta, likelihood_chain, gradient_chain = BM_exact(data, args.S, args.N, lr, threshold)
 
     plt.plot([x for x in range(len(likelihood_chain))], likelihood_chain)
     plt.xlabel("iterations")
