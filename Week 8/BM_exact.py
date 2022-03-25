@@ -37,17 +37,23 @@ def clamped_statistics(data):
     return single, double
 
 
-def free_statistics(w, theta, all_states, all_states_outer):
+def free_statistics(w, theta, all_states, all_states_outer, w_zero = False):
     p_s =  p_s_w(all_states, w, theta)
     single = np.sum([s * p for s, p in zip(all_states, p_s)], axis = 0)
-    double = np.sum([out * p for out, p in zip(all_states_outer, p_s)], axis = 0)
+    if w_zero:
+        double = 3000
+    else:
+        double = np.sum([out * p for out, p in zip(all_states_outer, p_s)], axis = 0)
     return single, double
 
 
-def BM_exact(data, NrofSpins, NrofData, lr, threshold):
+def BM_exact(data, NrofSpins, NrofData, lr, threshold, w_zero = False):
     #initialize w and theta randomly
-    w = np.random.randn(NrofSpins, NrofSpins)
-    np.fill_diagonal(w,0.) 
+    if w_zero:
+        w = np.zeros((NrofSpins, NrofSpins))
+    else:
+        w = np.random.randn(NrofSpins, NrofSpins)
+        np.fill_diagonal(w,0.) 
     theta = np.random.randn(NrofSpins)
 
     all_states = list(product(range(2), repeat = NrofSpins))
@@ -62,8 +68,11 @@ def BM_exact(data, NrofSpins, NrofData, lr, threshold):
     while 1:
         single_free, double_free = free_statistics(w, theta, all_states, all_states_outer)
         gradient_double = double_clamped - double_free
-        w += lr * gradient_double
-        np.fill_diagonal(w, 0.)
+        if w_zero:
+            w = np.zeros((NrofSpins, NrofSpins))
+        else:
+            w += lr * gradient_double
+            np.fill_diagonal(w, 0.)
         gradient_single = single_clamped - single_free
         theta += lr * gradient_single
 

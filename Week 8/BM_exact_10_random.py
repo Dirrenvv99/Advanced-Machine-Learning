@@ -5,6 +5,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from BM_exact import BM_exact
 from itertools import product
 from collections import Counter
+from sys import platform 
+import os
 
 parser = argparse.ArgumentParser(description= 'Toy model BM')
 parser.add_argument('-N',type= int, default= 10, help='Size of the dataset; amount of random spins used')
@@ -24,30 +26,35 @@ def p_s_w(s ,w, theta, Z):
     return 1/Z * unnormalized_p(s,w,theta)
 
 
-def likelihood(data,w,theta):
-    nom = 0 
-    Z = np.sum([unnormalized_p(point,w,theta) for point in data])
-    for s in data:
-        nom += 0.5*(np.dot(s,np.dot(w,s))) + np.dot(theta, s)
-    return nom/len(data) - np.log(Z)
+# def likelihood(data,w,theta):
+#     nom = 0 
+#     Z = np.sum([unnormalized_p(point,w,theta) for point in data])
+#     for s in data:
+#         nom += 0.5*(np.dot(s,np.dot(w,s))) + np.dot(theta, s)
+#     return nom/len(data) - np.log(Z)
 
-def clamped_statistics(data):
-    single = 1/(len(data)) * np.sum(data, axis = 0)
-    data_needed = np.array([np.outer(x,x) for x in data])
-    double = 1/(len(data)) * np.sum(data_needed, axis = 0)
+# def clamped_statistics(data):
+#     single = 1/(len(data)) * np.sum(data, axis = 0)
+#     data_needed = np.array([np.outer(x,x) for x in data])
+#     double = 1/(len(data)) * np.sum(data_needed, axis = 0)
 
-    return single, double
+#     return single, double
 
-def free_statistics(data, w, theta):
-    single = np.sum(np.array([s * p_s_w(s,data,w,theta) for s in data]), axis = 0)
-    double = np.sum(np.array([np.outer(s,s) * p_s_w(s,data,w,theta) for s in data]), axis = 0)
-    return single, double
+# def free_statistics(data, w, theta):
+#     single = np.sum(np.array([s * p_s_w(s,data,w,theta) for s in data]), axis = 0)
+#     double = np.sum(np.array([np.outer(s,s) * p_s_w(s,data,w,theta) for s in data]), axis = 0)
+#     return single, double
 
 
 def main():
     #Create toy model dataset
-    data_before = np.loadtxt("bint.txt")[:,:953]
-    data = data_before[np.random.choice(range(160), size = args.N, replace = False)]
+    full_data = np.loadtxt("bint.txt")
+    data_before = full_data[:,:953]
+
+    np.random.seed(69)
+    indices_10 = np.random.choice(range(160), size = args.N, replace = False)
+
+    data = data_before[indices_10]
     # data = data[:,:953]
     # random_choices = np.random.choice(range(160), size = 10, replace = False)
     # data = data[random_choices]
@@ -55,38 +62,55 @@ def main():
     #     point[point==0] = -1
     #     data[index] = point
     total_1 = np.sum(data)
+    print(total_1)
 
-    while total_1 < args.ones:
-        print("Data is beign redrawn to avoid too many spikes with only zeros, for the sake of computation speed")
-        data = data_before[np.random.choice(range(160), size = args.N, replace = False)]
-        total_1 = np.sum(data)
+    # while total_1 < args.ones:
+    #     print("Data is beign redrawn to avoid too many spikes with only zeros, for the sake of computation speed")
+    #     data = data_before[np.random.choice(range(160), size = args.N, replace = False)]
+    #     total_1 = np.sum(data)
     data = data.transpose()
 
     w, theta, likelihood_chain, gradient_chain = BM_exact(data,len(data[0]), len(data), lr, threshold)
 
+    _, theta_indep, _, _ = BM_exact(data, len(data[0]), len(data), lr, threshold, True)
+
     all_states = list(product(range(2), repeat = len(data[0])))
 
-    data = data.tolist()
-    new_data = map(tuple, data)
-    new_data_set = [list(item) for item in set(tuple(row) for row in data)]
+    full_data = full_data[indices_10]
+    full_data = full_data.transpose()
+
+    full_data = full_data.tolist()
+    new_data = map(tuple, full_data)
+    new_data_set = [list(item) for item in set(tuple(row) for row in full_data)]
 
     observed_occ = Counter(new_data)
 
     observed_rate = []
     for i in new_data_set:
-        observed_rate.append(observed_occ[tuple(i)]/len(data))
+        observed_rate.append(observed_occ[tuple(i)]/len(full_data))
 
     Z = np.sum([unnormalized_p(np.array(s),w,theta) for s in all_states])
+
+    Z_zeros = np.sum([unnormalized_p(np.array(s),np.zeros_like(w),theta_indep) for s in all_states])
     
     approximated_rate = [p_s_w(np.array(s), w, theta, Z) for s in new_data_set]
 
-    plt.scatter(observed_rate, approximated_rate, label = "patterns")
-    plt.plot([x for x in np.linspace(0.0001,1.2, 10000)],[x for x in np.linspace(0.0001,1.2, 10000)], color = "red", label = "y = x")
+    approximated_rate_indep = [p_s_w(np.array(s), np.zeros_like(w), theta_indep, Z_zeros) for s in new_data_set]
+
+    plt.scatter(observed_rate, approximated_rate, label = "patterns_dep", color = "red")
+    plt.scatter(observed_rate, approximated_rate_indep, label = "patterns_indep", color = "green")        
+    plt.plot([x for x in np.linspace(0.000001,1, 10000)],[x for x in np.linspace(0.000001,1, 10000)], color = "red", label = "y = x")
     plt.xlabel("Observerd pattern rate")
     plt.ylabel("Approximated by BM pattern rate")
     plt.xscale('log')
     plt.legend()
     plt.yscale('log')
+    plt.title("Recreation fig 2a")
+
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        plt.savefig("./PLOTS/BM_EXACT_SALAMANDER_" + str(threshold) + ".png")
+    elif platform == "win32":
+        plt.savefig(".\\PLOTS\\BM_EXACT_SALAMANDER_" + str(threshold) + ".png")
     plt.show()
 
 
