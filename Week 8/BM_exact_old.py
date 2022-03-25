@@ -37,63 +37,49 @@ def clamped_statistics(data):
     return single, double
 
 
-def free_statistics(w, theta, all_states, all_states_outer, w_zero = False):
+def free_statistics(w, theta, all_states, all_states_outer):
     p_s =  p_s_w(all_states, w, theta)
     single = np.sum([s * p for s, p in zip(all_states, p_s)], axis = 0)
-    if w_zero:
-        double = 3000
-    else:
-        double = np.sum([out * p for out, p in zip(all_states_outer, p_s)], axis = 0)
+    double = np.sum([out * p for out, p in zip(all_states_outer, p_s)], axis = 0)
     return single, double
 
 
-def BM_exact(data, NrofSpins, NrofData, lr, threshold, w_zero = False):
+def BM_exact(data, NrofSpins, NrofData, lr, threshold):
     #initialize w and theta randomly
-    if w_zero:
-        w = np.zeros((NrofSpins, NrofSpins))
-    else:
-        w = np.random.randn(NrofSpins, NrofSpins)
-        np.fill_diagonal(w,0.) 
+    w = np.random.randn(NrofSpins, NrofSpins)
+    np.fill_diagonal(w,0.) 
     theta = np.random.randn(NrofSpins)
 
     all_states = list(product(range(2), repeat = NrofSpins))
     all_states = [np.array(s) for s in all_states]
     all_states_outer = [np.outer(s,s) for s in all_states]
-    print(np.mean(w))
+
     likelihood_chain = [likelihood(w, theta, all_states, data)]
     gradient_chain = []
     i = 0
     single_clamped, double_clamped = clamped_statistics(data)
     
     while 1:
-        single_free, double_free = free_statistics(w, theta, all_states, all_states_outer, w_zero)
+        single_free, double_free = free_statistics(w, theta, all_states, all_states_outer)
         gradient_double = double_clamped - double_free
-        if w_zero:
-            w = np.zeros((NrofSpins, NrofSpins))
-        else:
-            w += lr * gradient_double
-            np.fill_diagonal(w, 0.)
+        w += lr * gradient_double
+        np.fill_diagonal(w, 0.)
         gradient_single = single_clamped - single_free
         theta += lr * gradient_single
 
         likelihood_chain.append(likelihood(w,theta, all_states, data))
         gradient_chain.append((np.mean(gradient_single), np.mean(gradient_double)))
-        
-        if w_zero:
-           if np.allclose(single_clamped, single_free, rtol=0, atol = threshold * 1/lr):
-               break
-        else:
-            if np.allclose(double_clamped, double_free, rtol=0, atol = threshold * 1/lr) and \
-            np.allclose(single_clamped, single_free, rtol=0, atol = threshold * 1/lr):
-                break
+
+        if np.allclose(double_clamped, double_free, rtol=0, atol = threshold * 1/lr) and \
+           np.allclose(single_clamped, single_free, rtol=0, atol = threshold * 1/lr):
+            break
         
         i += 1
         if i % 100 == 0:
             print("double: ",np.max(np.abs(double_clamped - double_free)))
             print("single: ",np.max(np.abs(single_clamped - single_free)))
             print(i)
-            
-    print(np.mean(w))
+
     return w, theta, likelihood_chain, gradient_chain
 
 
