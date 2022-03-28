@@ -11,7 +11,7 @@ import os
 parser = argparse.ArgumentParser(description= 'Toy model BM')
 parser.add_argument('-N',type= int, default= 10, help='Size of the dataset; amount of random spins used')
 parser.add_argument('-ones',type= int, default= 350, help='Amount of ones desired within the data for computational speed')
-parser.add_argument('--eta',type = float, default = 0.01, help = "learningrate" )
+parser.add_argument('--eta',type = float, default = 0.001, help = "learningrate" )
 parser.add_argument('--threshold',type = float, default = 10**(-5), help = "Threshold for convergence of the method (chosen lower due to much of only zeros)" )
 args = parser.parse_args()
 
@@ -25,45 +25,20 @@ def p_s_w(s ,w, theta, Z):
     # for the exact model needs to be calculated exactly, thus including the normalization constant.
     return 1/Z * unnormalized_p(s,w,theta)
 
-
-# def likelihood(data,w,theta):
-#     nom = 0 
-#     Z = np.sum([unnormalized_p(point,w,theta) for point in data])
-#     for s in data:
-#         nom += 0.5*(np.dot(s,np.dot(w,s))) + np.dot(theta, s)
-#     return nom/len(data) - np.log(Z)
-
-# def clamped_statistics(data):
-#     single = 1/(len(data)) * np.sum(data, axis = 0)
-#     data_needed = np.array([np.outer(x,x) for x in data])
-#     double = 1/(len(data)) * np.sum(data_needed, axis = 0)
-
-#     return single, double
-
-# def free_statistics(data, w, theta):
-#     single = np.sum(np.array([s * p_s_w(s,data,w,theta) for s in data]), axis = 0)
-#     double = np.sum(np.array([np.outer(s,s) * p_s_w(s,data,w,theta) for s in data]), axis = 0)
-#     return single, double
-
-
 def main():
-    #Create toy model dataset
+    #Create dataset consisting of 10 random lines of the given data
     full_data = np.loadtxt("bint.txt")
     data_before = full_data[:,:953]
 
+    #seed to make sure it can be recreated
     np.random.seed(42)
     indices_10 = np.random.choice(range(160), size = args.N, replace = False)
 
     data = data_before[indices_10]
-    # data = data[:,:953]
-    # random_choices = np.random.choice(range(160), size = 10, replace = False)
-    # data = data[random_choices]
-    # for index, point in enumerate(data):
-    #     point[point==0] = -1
-    #     data[index] = point
     total_1 = np.sum(data)
     print(total_1)
 
+    #Uncomment below to make sure that data at least contains a little of   
     # while total_1 < args.ones:
     #     print("Data is beign redrawn to avoid too many spikes with only zeros, for the sake of computation speed")
     #     data = data_before[np.random.choice(range(160), size = args.N, replace = False)]
@@ -72,7 +47,7 @@ def main():
 
     w, theta, likelihood_chain, gradient_chain = BM_exact(data,len(data[0]), len(data), lr, threshold)
 
-    # _, theta_indep, _, _ = BM_exact(data, len(data[0]), len(data), lr, threshold, True)
+    _, theta_indep, _, _ = BM_exact(data, len(data[0]), len(data), lr, threshold, True)
 
     all_states = list(product(range(2), repeat = len(data[0])))
 
@@ -91,14 +66,14 @@ def main():
 
     Z = np.sum([unnormalized_p(np.array(s),w,theta) for s in all_states])
 
-    # Z_zeros = np.sum([unnormalized_p(np.array(s),np.zeros_like(w),theta_indep) for s in all_states])
+    Z_zeros = np.sum([unnormalized_p(np.array(s), np.zeros_like(w),theta_indep) for s in all_states])
     
     approximated_rate = [p_s_w(np.array(s), w, theta, Z) for s in new_data_set]
 
-    # approximated_rate_indep = [p_s_w(np.array(s), np.zeros_like(w), theta_indep, Z_zeros) for s in new_data_set]
+    approximated_rate_indep = [p_s_w(np.array(s), np.zeros_like(w), theta_indep, Z_zeros) for s in new_data_set]
 
     plt.scatter(observed_rate, approximated_rate, label = "patterns_dep", color = "red")
-    # plt.scatter(observed_rate, approximated_rate_indep, label = "patterns_indep", color = "green")        
+    plt.scatter(observed_rate, approximated_rate_indep, label = "patterns_indep", color = "green")        
     plt.plot([x for x in np.linspace(0.000001,1, 10000)],[x for x in np.linspace(0.000001,1, 10000)], color = "red", label = "y = x")
     plt.xlabel("Observerd pattern rate")
     plt.ylabel("Approximated by BM pattern rate")
@@ -108,9 +83,9 @@ def main():
     plt.title("Recreation fig 2a")
 
     if platform == "linux" or platform == "linux2" or platform == "darwin":
-        plt.savefig("./PLOTS/BM_EXACT_SALAMANDER_" + str(threshold) + ".png")
+        plt.savefig("./PLOTS/BM_EXACT_SALAMANDER_" + str(threshold) + "_full.png")
     elif platform == "win32":
-        plt.savefig(".\\PLOTS\\BM_EXACT_SALAMANDER_" + str(threshold) + ".png")
+        plt.savefig(".\\PLOTS\\BM_EXACT_SALAMANDER_" + str(threshold) + "_full.png")
     plt.show()
 
 
