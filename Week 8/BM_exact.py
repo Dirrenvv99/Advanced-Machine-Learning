@@ -126,9 +126,9 @@ def free_statistics(w, theta, all_states, all_states_outer, w_zero = False):
     return single, double
 
 
-def BM_exact(data, NrofSpins, NrofData, lr, threshold, seed = 0, w_zero = False, MH_stats = False, samples = 100, sweeps = 1, MF_and_LR = False, MF_threshold = 0.001):
+def BM_exact(data, NrofSpins, NrofData, lr, threshold, seed=None, w_zero = False, MH_stats = False, samples = 100, sweeps = 1, MF_and_LR = False, MF_threshold = 0.001):
     #initialize w and theta randomly
-    if seed != 0:
+    if seed:
         np.random.seed(seed)
     if w_zero:
         w = np.zeros((NrofSpins, NrofSpins))
