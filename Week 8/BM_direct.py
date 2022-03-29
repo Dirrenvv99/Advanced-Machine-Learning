@@ -25,17 +25,16 @@ def likelihood(w,theta,data, Z):
     return np.mean(nom, axis=0) - np.log(Z)
 
 
-def clamped_statistics(data):
+def clamped_statistics(data, double_multiplication):
     single = 1/(len(data)) * np.sum(data, axis=0)
-    data_needed = np.array([np.outer(x, x) for x in data])
-    double = 1/(len(data)) * np.sum(data_needed, axis=0)
+    double = 1/(len(data)) * double_multiplication
     # Diagonals are set to zero. 
     # Since the diagonal of the w should be zero anyway.
     np.fill_diagonal(double, 0.)
     return single, double
 
-def direct_solve(data,eps):
-    clamped_single, clamped_double = clamped_statistics(data)
+def direct_solve(data, eps, double_multiplication):
+    clamped_single, clamped_double = clamped_statistics(data, double_multiplication)
     C = clamped_double - np.outer(clamped_single, clamped_single)
     C = C + np.eye(*C.shape)*eps
     m = clamped_single
@@ -55,6 +54,9 @@ if __name__ == '__main__':
     data = np.loadtxt("bint.txt")
     # data = data[np.random.choice(range(160), size=10, replace=False)]
     data = data.transpose()
+
+    data_needed = np.array([np.outer(x, x) for x in data])
+    double_multiplication = np.sum(data_needed, axis=0)
     print("data retreived")
     # seed to make sure it can be recreated
     # np.random.seed(42)
@@ -65,7 +67,7 @@ if __name__ == '__main__':
     # data = np.array([np.random.randint(0, 2, size=args.S) for _ in range(args.N)])
     epss = [x for x in np.linspace(0.01, 0.3, 5)]
 
-    plt.plot(epss, [direct_solve(data,eps) for eps in tqdm(epss)])
+    plt.plot(epss, [direct_solve(data,eps, double_multiplication) for eps in tqdm(epss)])
     # plt.yscale('log')
     plt.show()
 
