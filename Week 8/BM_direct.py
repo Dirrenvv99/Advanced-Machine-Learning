@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import argparse
 from itertools import product
 from collections import Counter
-
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='Toy model BM')
 parser.add_argument('-N',type=int, default=1000, help='Size of the dataset')
@@ -20,10 +20,9 @@ def p_s_w(s, w, theta, Z):
     return 1/Z * unnormalized_p(s, w, theta)
 
 
-# def likelihood(w,theta, all_states, data):
-#     Z = np.sum(unnormalized_p(all_states, w, theta))
-#     nom = [0.5*np.dot(s,np.dot(w, s)) + np.dot(theta, s) for s in data] 
-#     return np.mean(nom, axis=0) - np.log(Z)
+def likelihood(w,theta,data, Z):
+    nom = [unnormalized_p(s,w,theta) for s in data] 
+    return np.mean(nom, axis=0) - np.log(Z)
 
 
 def clamped_statistics(data):
@@ -35,11 +34,26 @@ def clamped_statistics(data):
     np.fill_diagonal(double, 0.)
     return single, double
 
+def direct_solve(data,eps):
+    clamped_single, clamped_double = clamped_statistics(data)
+    C = clamped_double - np.outer(clamped_single, clamped_single)
+    C = C + np.eye(*C.shape)*eps
+    m = clamped_single
+
+    w = np.zeros_like(C)
+    np.fill_diagonal(w, 1/(1-m**2))
+    w = w - np.linalg.inv(C)
+
+    theta = np.arctanh(m) - np.dot(w, m)
+
+    Z = np.sum([unnormalized_p(s,w,theta) for s in data])
+    return np.exp(likelihood(w, theta, data, Z))
+
+
 
 if __name__ == '__main__':
-    full_data = np.loadtxt("bint.txt")
-    data = full_data[:,:953]
-    data = data[np.random.choice(range(160), size=10, replace=False)]
+    data = np.loadtxt("bint.txt")
+    # data = data[np.random.choice(range(160), size=10, replace=False)]
     data = data.transpose()
     print("data retreived")
     # seed to make sure it can be recreated
@@ -49,47 +63,54 @@ if __name__ == '__main__':
 
     # Create toy model dataset
     # data = np.array([np.random.randint(0, 2, size=args.S) for _ in range(args.N)])
+    epss = [x for x in np.linspace(0.01, 0.3, 5)]
 
-    clamped_single, clamped_double = clamped_statistics(data)
-    C = clamped_double - np.outer(clamped_single, clamped_single)
-    C = C + np.eye(*C.shape)*10**-13
-    m = clamped_single
-
-    w = np.zeros_like(C)
-    np.fill_diagonal(w, 1/(1-m**2))
-    w = w - np.linalg.inv(C)
-
-    theta = np.arctanh(m) - np.dot(w, m)
-
-    print(w.shape, theta.shape)
-
-    full_data = data.tolist()
-    new_data = map(tuple, full_data)
-    new_data_set = [list(item) for item in set(tuple(row) for row in full_data)]
-
-    print(new_data_set[0])
-
-    observed_occ = Counter(new_data)
-
-    print(observed_occ)
-
-    observed_rate = []
-    for i in new_data_set:
-        observed_rate.append(observed_occ[tuple(i)]/len(full_data))
-
-    all_states = list(product(range(2), repeat = len(data[0])))
-
-    Z = np.sum([unnormalized_p(np.array(s), w, theta) for s in all_states])
-
-    approximated_rate = [p_s_w(np.array(s), w, theta, Z) for s in new_data_set]
-    print(len(observed_rate), len(approximated_rate), observed_rate[0], approximated_rate[0])
-
-    plt.scatter(observed_rate, approximated_rate, label="patterns_dep", color="red")
-    plt.plot([x for x in np.linspace(0.000001,1, 10000)],[x for x in np.linspace(0.000001,1, 10000)], color = "red", label = "y = x")
-    plt.xlabel("Observerd pattern rate")
-    plt.ylabel("Approximated by BM pattern rate")
-    plt.xscale('log')
-    plt.legend()
-    plt.yscale('log')
-    plt.title("Recreation fig 2a")
+    plt.plot(epss, [direct_solve(data,eps) for eps in tqdm(epss)])
+    # plt.yscale('log')
     plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # full_data = data.tolist()
+    # new_data = map(tuple, full_data)
+    # new_data_set = [list(item) for item in set(tuple(row) for row in full_data)]
+
+
+    # observed_occ = Counter(new_data)
+
+
+    # observed_rate = []
+    # for i in new_data_set:
+    #     observed_rate.append(observed_occ[tuple(i)]/len(full_data))
+
+    # all_states = list(product(range(2), repeat = len(data[0])))
+
+    # Z = np.sum([unnormalized_p(np.array(s), w, theta) for s in all_states])
+
+    # approximated_rate = [p_s_w(np.array(s), w, theta, Z) for s in new_data_set]
+    # print(approximated_rate[-1])
+    # print(len(observed_rate), len(approximated_rate), observed_rate[0], approximated_rate[0])
+
+    # plt.scatter(observed_rate, approximated_rate, label="patterns_dep", color="red")
+    # plt.plot([x for x in np.linspace(0.000001,1, 10000)],[x for x in np.linspace(0.000001,1, 10000)], color = "red", label = "y = x")
+    # plt.xlabel("Observerd pattern rate")
+    # plt.ylabel("Approximated by BM pattern rate")
+    # plt.xscale('log')
+    # plt.legend()
+    # plt.yscale('log')
+    # plt.title("Recreation fig 2a")
+    # plt.show()
