@@ -196,6 +196,8 @@ def BM_exact(data, NrofSpins, NrofData, lr, threshold, seed=None, w_zero = False
 if __name__ == '__main__':
     # Create toy model dataset
     data = np.array([np.random.randint(0, 2, size = args.S) for _ in range(args.N)])
+    for point in data:
+        point[point == 0] = -1
     w, theta, likelihood_chain, gradient_chain = BM_exact(data, args.S, args.N, lr, threshold, False, False)
 
     plt.plot([x for x in range(len(likelihood_chain))], likelihood_chain)
