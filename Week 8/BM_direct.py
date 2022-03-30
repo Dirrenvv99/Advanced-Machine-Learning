@@ -58,7 +58,7 @@ def direct_solve(data, eps, clamped_single, clamped_double):
 
 
 if __name__ == '__main__':
-    data = np.loadtxt("bint.txt")
+    data = np.loadtxt("bint.txt")[:,:953]
     # data = data[np.random.choice(range(160), size=10, replace=False)]
     data = data.transpose()
 
@@ -74,7 +74,9 @@ if __name__ == '__main__':
     # data = np.array([np.random.randint(0, 2, size=args.S) for _ in range(args.N)])
     epss = [x for x in np.linspace(0.09, 0.5, 20)]
 
-    plt.plot(epss, [direct_solve(data, eps, clamped_single, clamped_double) for eps in tqdm(epss)])
+    print(direct_solve(data, 0.001, clamped_single, clamped_double))
+
+    # plt.plot(epss, [direct_solve(data, eps, clamped_single, clamped_double) for eps in tqdm(epss)])
     # plt.yscale('log')
     plt.show()
 

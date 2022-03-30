@@ -17,9 +17,12 @@ def comparer():
     # generate data for toy model
     data = np.array([np.random.randint(0, 2, size = args.S) for _ in range(args.N)])
 
+    w_samples, theta_sampled, l_sampled, g_sampled = BM_exact(data, args.S, args.N,lr,threshold,4,False,True, samples = 1000, sweeps = 1)
+
+
     w_exact, theta_exact, l_exact, g_exact = BM_exact(data, args.S, args.N,lr,threshold,4,False,False)
 
-    w_samples, theta_sampled, l_sampled, g_sampled = BM_exact(data, args.S, args.N,lr,threshold,4,False,True, samples = 1000, sweeps = 1)
+    # w_samples, theta_sampled, l_sampled, g_sampled = BM_exact(data, args.S, args.N,lr,threshold,4,False,True, samples = 1000, sweeps = 1)
 
     fig, axs = plt.subplots(2,2)
     axs[0,0].plot([x for x in range(l_exact)], l_exact)

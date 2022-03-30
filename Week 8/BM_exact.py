@@ -3,10 +3,12 @@ import matplotlib.pyplot as plt
 import argparse
 from itertools import product
 
+from sympy import false
+
 parser = argparse.ArgumentParser(description= 'Toy model BM')
 parser.add_argument('-N',type= int, default= 1000, help='Size of the dataset')
 parser.add_argument('-S',type = int, default = 10, help = "Amount of spins" )
-parser.add_argument('--eta',type = float, default = 0.5, help = "learningrate" )
+parser.add_argument('--eta',type = float, default = 1e-1, help = "learningrate" )
 parser.add_argument('--threshold',type = float, default = 10**(-13), help = "Threshold for convergence of the method" )
 args = parser.parse_args()
 
@@ -14,13 +16,30 @@ lr = args.eta
 threshold = args.threshold
 
 
-def unnormalized_p(all_states, w,theta):
-    return np.array([np.exp(0.5*np.dot(s, np.dot(w,s)) + np.dot(theta, s)) for s in all_states])
+def unnormalized_p(data, w,theta):
+    # np.array([np.exp(0.5*np.dot(s, np.dot(w,s)) + np.dot(theta, s)) for s in all_states])
+
+    # E(w,theta, data):
+    d = w.shape[0]
+    data = np.array(data)
+    # theta = theta.transpose()
+    # print(theta.shape)
+    # print(data@theta.shape
+    interactions = np.sum(np.multiply((data@((1-np.eye(d))*w)), data), axis = 1)/2
+    # print(interactions.shape)
+    local_field = data@theta
+    # print(local_field.shape)
+    E = -(interactions+local_field)
+    return np.exp(-E)
 
 
-def p_s_w(all_states, w, theta):
+
+
+
+
+def p_s_w(data, w, theta):
     # for the exact model needs to be calculated exactly, thus including the normalization constant. 
-    res = unnormalized_p(all_states,w,theta)
+    res = unnormalized_p(data,w,theta)
     return 1/np.sum(res) * res
 
 
@@ -35,7 +54,7 @@ def a_value(w, theta, pattern, site):
     # new_pattern = np.copy(pattern)
     # new_pattern[site] = 1- new_pattern[site]
     # a_orig = (np.exp(0.5*np.dot(new_pattern,np.dot(w,new_pattern)) + np.dot(theta, new_pattern)))/(np.exp(0.5*np.dot(pattern,np.dot(w,pattern)) + np.dot(theta, pattern)))
-    a = np.exp((1-2*pattern[site]) * np.dot(w[site], pattern) + (1 - 2 * pattern[site]) * theta[site])
+    a = np.exp(-2*pattern[site] * np.dot(w[site], pattern) - 2 * pattern[site] * theta[site])
     # print(a - a_orig)
     # diff = (2*pattern[site]-1)*np.dot(w[site], pattern) - (2*pattern[site]-1)*theta[site]
     return a
@@ -111,18 +130,25 @@ def clamped_statistics(data):
     double = 1/(len(data)) * np.sum(data_needed, axis = 0)
     #Diagonals are set to zero. Since the diagonal of the w should be zero anyway.
     np.fill_diagonal(double, 0.)
+    # print(np.round(single, 2))
+    # print(np.round(double,2))
     return single, double
 
 
 def free_statistics(w, theta, all_states, all_states_outer, w_zero = False):
     p_s =  p_s_w(all_states, w, theta)
-    single = np.sum([s * p for s, p in zip(all_states, p_s)], axis = 0)
+    # print("p:", p_s[:4], "\n")
+    single = np.einsum('k,ki -> i', p_s, np.array(all_states))
+    # single = np.sum([s * p for s, p in zip(all_states, p_s)], axis = 0)
     if w_zero:
         double = 3000
     else:
-        double = np.sum([out * p for out, p in zip(all_states_outer, p_s)], axis = 0)
+        double = np.einsum('k,ki,kj -> ij', p_s, np.array(all_states), np.array(all_states))
+        # double = np.sum([out * p for out, p in zip(all_states_outer, p_s)], axis = 0)
         #Diagonals are set to zero. Since the diagonal of the w should be zero anyway.
-        np.fill_diagonal(double, 0.)
+        # np.fill_diagonal(double, 0.)
+
+    
     return single, double
 
 
@@ -133,13 +159,13 @@ def BM_exact(data, NrofSpins, NrofData, lr, threshold, seed=None, w_zero = False
     if w_zero:
         w = np.zeros((NrofSpins, NrofSpins))
     else:        
-        w = np.random.rand(NrofSpins, NrofSpins)
-        w = np.tril(w) + np.tril(w, -1).T
-        np.fill_diagonal(w,0.) 
-    theta = np.random.rand(NrofSpins)
+        w = np.zeros((NrofSpins, NrofSpins))
+        # w = np.tril(w) + np.tril(w, -1).T
+        # np.fill_diagonal(w,0.) 
+    theta = np.zeros((NrofSpins))
 
 
-    all_states = list(product(range(2), repeat = NrofSpins))
+    all_states = list(product([-1,1], repeat = NrofSpins))
     all_states = [np.array(s) for s in all_states]
 
     if MH_stats:
@@ -153,40 +179,51 @@ def BM_exact(data, NrofSpins, NrofData, lr, threshold, seed=None, w_zero = False
     i = 0
     single_clamped, double_clamped = clamped_statistics(data)
     
+
     while 1:
         if MH_stats:
-            single_free, double_free, pattern = MH_sampler(w, theta, NrofSpins * sweeps, samples, pattern)
+            single_free, double_free, pattern = MH_sampler(w, theta, sweeps, samples, pattern)
         elif MF_and_LR:
             single_free, double_free = MF_and_LR_calculation(w,theta, MF_threshold)
         else:
             single_free, double_free = free_statistics(w, theta, all_states, all_states_outer, w_zero)
 
-        gradient_double = double_clamped - double_free
+        # print(single_free)
+        # print("free w: ", double_free[0, None], "\n")
+        # print("free theta: ", single_free, "\n")
+
+        gradient_double = (1 - np.eye(w.shape[0])) * (double_clamped - double_free)
         if w_zero:
             w = np.zeros((NrofSpins, NrofSpins))
         else:
-            w += lr * gradient_double
+            w = w + lr * gradient_double
         gradient_single = single_clamped - single_free
         theta += lr * gradient_single
+        
+        # print(np.round(theta, 2))
+        # print("w: ", w[0, None], "\n")
+        # print("theta: ", theta, "\n")
+        # print("------------------------")
 
         likelihood_chain.append(likelihood(w,theta, all_states, data))
         gradient_chain.append((np.mean(gradient_single), np.mean(gradient_double)))
-    
+
         if w_zero:
            if np.allclose(single_clamped, single_free, rtol=0, atol = threshold * 1/lr):
                break
         else:
-            if np.allclose(double_clamped, double_free, rtol=0, atol = threshold * 1/lr) and \
-            np.allclose(single_clamped, single_free, rtol=0, atol = threshold * 1/lr):
+            if np.max(np.abs(gradient_double)) < threshold * 1/ lr and \
+            np.max(np.abs(gradient_single)) < threshold * 1/lr:
                 break
         
         i += 1
         if i % 100 == 0:
-            print("double: ",np.max(np.abs(double_clamped - double_free)))
-            print("single: ",np.max(np.abs(single_clamped - single_free)))
+            print("double: ",np.max(np.abs(gradient_double)))
+            print("single: ",np.max(np.abs(gradient_single)))
             if MH_stats:
                 print("ones in pattern:", np.sum(pattern))
             print(i)
+        
             
     print(np.mean(w))
     gradient_chain = np.array(gradient_chain)
@@ -195,8 +232,12 @@ def BM_exact(data, NrofSpins, NrofData, lr, threshold, seed=None, w_zero = False
 
 if __name__ == '__main__':
     # Create toy model dataset
-    data = np.array([np.random.randint(0, 2, size = args.S) for _ in range(args.N)])
-    w, theta, likelihood_chain, gradient_chain = BM_exact(data, args.S, args.N, lr, threshold, False, False)
+    np.random.seed(42)
+    data = np.array([np.random.randint(0, 2, size = 4) for _ in range(1000)])
+    for point in data:
+        point[point == 0] = -1
+    # print(data)
+    w, theta, likelihood_chain, gradient_chain = BM_exact(data, 4, 1000, lr, threshold, False, False)
 
     plt.plot([x for x in range(len(likelihood_chain))], likelihood_chain)
     plt.xlabel("iterations")
