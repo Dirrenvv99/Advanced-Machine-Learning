@@ -12,7 +12,7 @@ args = parser.parse_args()
 
 lr = args.eta
 threshold = args.threshold
-    
+
 def comparer():
     # generate data for toy model
     data = np.array([np.random.randint(0, 2, size = args.S) for _ in range(args.N)])
